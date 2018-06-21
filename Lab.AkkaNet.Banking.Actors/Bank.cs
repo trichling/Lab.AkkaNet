@@ -36,8 +36,10 @@ namespace Lab.AkkaNet.Banking.Actors
                 case QueryAccountBalance queryAccountBalance:
                     var account = Context.Child($"Account-{queryAccountBalance.Number}");
                     account.Forward(new QueryBalance(queryAccountBalance.Number));
+                    //account.Tell(new QueryBalance(queryAccountBalance.Number), Self);
+                    //account.Tell(new QueryBalance(queryAccountBalance.Number), Sender);
+
                     //var amount = account.Ask<double>(new QueryBalance(queryAccountBalance.Number)).Result;
-                    //Sender.Tell(amount);
                     break;
             }
         }

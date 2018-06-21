@@ -11,6 +11,8 @@ namespace Lab.AkkaNet.Banking.Actors
         {
             //TheFundraiser();
             TheMillionaresGame();
+
+            Console.ReadLine();
         }
 
         private static void TheFundraiser()
@@ -35,7 +37,7 @@ namespace Lab.AkkaNet.Banking.Actors
         private static void TheMillionaresGame()
         {
             var bankingSystem = ActorSystem.Create("bankingSystem");
-            var bank = bankingSystem.ActorOf(Bank.Create("Sparkasse"));
+            var bank = bankingSystem.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
 
             bank.Tell(new Open(1, 1000000)); // bob
             bank.Tell(new Open(2, 1000000)); // sam

@@ -10,6 +10,8 @@ namespace Lab.AkkaNet.Banking.Vanilla
         {
             TheMillionaresGame();
             TheFundraiser();
+
+            Console.ReadLine();
         }
 
         private static void TheFundraiser()

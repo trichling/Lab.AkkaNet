@@ -1,0 +1,25 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "buildAkka",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/Lab.AkkaNet.Banking.Actors/Lab.AkkaNet.Banking.Actors.csproj"
+            ],
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "buildVanilla",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/Lab.AkkaNet.Banking.Vanilla/Lab.AkkaNet.Banking.Vanilla.csproj"
+            ],
+            "problemMatcher": "$msCompile"
+        }
+    ]
+}
