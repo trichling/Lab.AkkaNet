@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using Akka.Actor;
 
-namespace Lab.AkkaNet.Banking.Actors
+namespace Lab.AkkaNet.Banking.Actors.UntypedExample
 {
     public class Account : UntypedActor
     {

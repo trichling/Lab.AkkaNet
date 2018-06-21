@@ -10,6 +10,7 @@ namespace Lab.AkkaNet.Banking.Vanilla
         {
             TheMillionaresGame();
             TheFundraiser();
+            TheLuckyLooserWithTheSadWinner();
 
             Console.ReadLine();
         }
@@ -54,6 +55,24 @@ namespace Lab.AkkaNet.Banking.Vanilla
             });
 
             Task.WaitAll(bobToSam, samToBob);
+        }
+
+        public static void TheLuckyLooserWithTheSadWinner()
+        {
+            var bank = new Bank("Sparkasse Rheine");
+            var luckyLooser = bank.Open(1, 0);
+            var sadWinner = bank.Open(2, 0);
+
+            var tasks = new List<Task>();
+            for (int i = 0; i < 100000; i++)
+            {
+                tasks.Add(Task.Run(() =>
+                {
+                    bank.Transfer(1, 2, 1);
+                }));
+            }
+
+            Task.WaitAll(tasks.ToArray());
         }
     }
 }
