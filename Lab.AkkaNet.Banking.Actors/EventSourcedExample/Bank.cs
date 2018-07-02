@@ -11,10 +11,25 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
         public static Props Create(string name) => Props.Create(() => new Bank(name));
 
         private string name;
+        private HashSet<Guid> openTransfers;
+        private int succeededTransfers;
+        private int canceledTransfers;
 
         public Bank(string name)
         {
             this.name = name;
+            this.openTransfers = new HashSet<Guid>();
+        }
+
+        public void Handle(QueryAccountBalance queryAccountBalance)
+        {
+            var account = Context.Child($"Account-{queryAccountBalance.Number}");
+            account.Forward(new QueryBalance(queryAccountBalance.Number));
+        }
+
+        public void Handle(Audit audit)
+        {
+            Sender.Tell(new AuditResult(this.openTransfers.Count, this.succeededTransfers, this.canceledTransfers));
         }
 
         public void Handle(Open open)
@@ -32,23 +47,60 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
             var sourceAccount = Context.Child($"Account-{transfer.SourceAccountNumber}");
             var targetAccount = Context.Child($"Account-{transfer.TargetAccountNumber}");
 
-            Context.ActorOf(TransferTransaction.Create(Self, Guid.NewGuid(), (transfer.SourceAccountNumber, sourceAccount), (transfer.TargetAccountNumber, targetAccount), transfer.Amount));
+            var transactionId = Guid.NewGuid();
+            Context.ActorOf(TransferTransaction.Create(Sender, transactionId, (transfer.SourceAccountNumber, sourceAccount), (transfer.TargetAccountNumber, targetAccount), transfer.Amount), $"Transaction-{transactionId}");
+            Causes(new TransferStarted(transactionId, transfer.SourceAccountNumber, transfer.TargetAccountNumber, transfer.Amount));
         }
 
-        public void Apply(TransferCompletedSuccesful transferCompletedSuccesful)
+        public void Apply(TransferStarted startedTransfer)
         {
-            
+            openTransfers.Add(startedTransfer.TransactionId);
         }
 
-        public void Handle(QueryAccountBalance queryAccountBalance)
+        public void Handle(TransferSucceeded successfulTransfer)
         {
-            var account = Context.Child($"Account-{queryAccountBalance.Number}");
-            account.Forward(new QueryBalance(queryAccountBalance.Number));
-
-            //account.Tell(new QueryBalance(queryAccountBalance.Number), Self);
-            //account.Tell(new QueryBalance(queryAccountBalance.Number), Sender);
-            //var amount = account.Ask<double>(new QueryBalance(queryAccountBalance.Number)).Result;
+            Causes(successfulTransfer);
         }
+
+        public void Apply(TransferSucceeded successfulTransfer)
+        {
+            openTransfers.Remove(successfulTransfer.TransactionId);
+            succeededTransfers++;
+        }
+
+        public void Handle(TransferCanceled canceledTransfer)
+        {
+            Causes(canceledTransfer);
+        }
+
+        public void Apply(TransferCanceled canceledTransfer)
+        {
+            openTransfers.Remove(canceledTransfer.TransactionId);
+            canceledTransfers++;
+        }
+
+       
+
+    }
+
+    public class Audit
+    {
+
+    }
+
+    public class AuditResult
+    {
+        
+        public AuditResult(int openTransfers, int succeededTransfers, int canceledTransfers)
+        {
+            OpenTransfers = openTransfers;
+            SucceededTransfers = succeededTransfers;
+            CanceledTransfers = canceledTransfers;
+        }
+
+        public int OpenTransfers { get; }
+        public int SucceededTransfers { get; }
+        public int CanceledTransfers { get; }
 
     }
 
@@ -73,6 +125,24 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
             TargetAccountNumber = targetAccountNumber;
             Amount = amount;
         }
+
+        public int SourceAccountNumber { get; }
+        public int TargetAccountNumber { get; }
+        public double Amount { get; }
+    }
+
+    public class TransferStarted
+    {
+
+        public TransferStarted(Guid transactionId, int sourceAccountNumber, int targetAccountNumber, double amount)
+        {
+            TransactionId = transactionId;
+            SourceAccountNumber = sourceAccountNumber;
+            TargetAccountNumber = targetAccountNumber;
+            Amount = amount;
+        }
+
+        public Guid TransactionId { get; }
         public int SourceAccountNumber { get; }
         public int TargetAccountNumber { get; }
         public double Amount { get; }
@@ -99,15 +169,18 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
         public Guid TransactionId { get; }
     }
 
-    public class TransferCompletedSuccesful
+    public class TransferSucceeded
     {
 
-        public TransferCompletedSuccesful(Guid transactionId, int sourceAccountNumber, int targetAccountNumber, double amount)
+        public TransferSucceeded(Guid transactionId, int sourceAccountNumber, int targetAccountNumber, double amount)
         {
+            TransactionId = transactionId;
             SourceAccountNumber = sourceAccountNumber;
             TargetAccountNumber = targetAccountNumber;
             Amount = amount;
         }
+
+        public Guid TransactionId { get; }
         public int SourceAccountNumber { get; }
         public int TargetAccountNumber { get; }
         public double Amount { get; }

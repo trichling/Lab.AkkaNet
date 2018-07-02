@@ -38,30 +38,31 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
 
         private UntypedReceive TryBlockAmountForTransfer()
         {
-            Context.System.EventStream.Subscribe(Self, typeof(AmountBlockedForTransfer));
-
-
             return message => {
                 switch  (message)
                 {
                     case InsufficiantBalance insufficiantBalance:
-                        initiator.Tell(new TransferCanceled(transactionId));
+                        Report(new TransferCanceled(transactionId));
                         Context.Stop(Self);
                     break;
 
                     case AmountBlockedForTransfer amountBlockedForTransfer:
-                        destination.Account.Tell(new Deposit(destination.Number, transferBalance));
+                        destination.Account.Tell(new Deposit(transactionId, destination.Number, transferBalance));
                         Become(WaitForDeposit());
                     break;
                 }
             };
         }
 
+        private void Report(TransferCanceled transferCanceled)
+        {
+            initiator.Tell(transferCanceled);
+            Context.Parent.Tell(transferCanceled);
+        }
+
         private UntypedReceive WaitForDeposit()
         {
-            Context.System.EventStream.Subscribe(Self, typeof(AmountDeposited));
-            var transferTimeoutTimer = Context.System.Scheduler.ScheduleTellOnceCancelable(TimeSpan.FromSeconds(60), Self, new TransferTimedOut(transactionId), Self);
-
+            var transferTimeoutTimer = Context.System.Scheduler.ScheduleTellOnceCancelable(TimeSpan.FromSeconds(1), Self, new TransferTimedOut(transactionId), Self);
 
             return message => 
             {
@@ -73,7 +74,7 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
                     break;
                     case AmountDeposited amountDeposited:
                         transferTimeoutTimer.Cancel();
-                        source.Account.Tell(new WithdrawBlockedAmount(transactionId));
+                        source.Account.Tell(new Withdraw(transactionId, source.Number, transferBalance));
                         Become(WaitForWithdrawel());
                     break;
                 }
@@ -82,14 +83,12 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
 
         private UntypedReceive WaitForCompensation()
         {
-            Context.System.EventStream.Subscribe(Self, typeof(BlockedAmountReleased));
-
             return message => 
             {
                 switch (message)
                 {
-                    case BlockedAmountReleased amountReleased:
-                        initiator.Tell(new TransferCanceled(transactionId));
+                    case BlockedAmountReleased amountReleased when amountReleased.TransactionId == transactionId:
+                        Report(new TransferCanceled(transactionId));
                         Context.Stop(Self);
                     break;
                 }
@@ -98,18 +97,23 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
 
         private UntypedReceive WaitForWithdrawel()
         {
-            Context.System.EventStream.Subscribe(Self, typeof(AmountWithdrawn));
 
             return message => 
             {
                 switch (message)
                 {
                     case AmountWithdrawn amountWithdrawn:
-                        initiator.Tell(new TransferCompletedSuccesful(transactionId, source.Number, destination.Number, transferBalance));
+                        Report(new TransferSucceeded(transactionId, source.Number, destination.Number, transferBalance));
                         Context.Stop(Self);
                     break;
                 }
             };
+        }
+
+        private void Report(TransferSucceeded transferSucceeded)
+        {
+            initiator.Tell(transferSucceeded);
+            Context.Parent.Tell(transferSucceeded);
         }
     }
 

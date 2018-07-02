@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Akka.Actor;
 using Lab.AkkaNet.Banking.Actors.ActorBase;
@@ -24,14 +25,20 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
             this.outstandingTransfers = new Dictionary<Guid, double>();
         }
 
-        public void Handle(BlockAmounteForTransfer blockAmounteForTransfer)
+        public double AvailableBalance => balance - outstandingTransfers.Sum(t => t.Value);
+
+        public void Handle(BlockAmounteForTransfer blockAmountForTransfer)
         {
             // check number
 
-            if (balance > blockAmounteForTransfer.Amount)
-                Causes(new AmountBlockedForTransfer(blockAmounteForTransfer.Amount, blockAmounteForTransfer.TransactionId));
+            if (AvailableBalance > blockAmountForTransfer.Amount)
+            {
+                Causes(new AmountBlockedForTransfer(blockAmountForTransfer.Amount, blockAmountForTransfer.TransactionId));
+            }
             else
-                Sender.Tell(new InsufficiantBalance(number, blockAmounteForTransfer.Amount, balance));
+            {
+                Sender.Tell(new InsufficiantBalance(number, blockAmountForTransfer.Amount, AvailableBalance));
+            }
         }
 
         public void Apply(AmountBlockedForTransfer amountBlockedForTransfer)
@@ -39,21 +46,10 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
             outstandingTransfers.Add(amountBlockedForTransfer.TransactionId, amountBlockedForTransfer.Amount);
         }
 
-        public void Handle(WithdrawBlockedAmount withdraw)
-        {
-            var amount = outstandingTransfers[withdraw.TransactionId];
-            Causes(new BlockedAmountWithdrawn(withdraw.TransactionId, amount));
-        }
-
-        public void Apply(BlockedAmountWithdrawn amountBlockedForTransfer)
-        {
-            balance -= amountBlockedForTransfer.WithdrawnAmount;
-            outstandingTransfers.Remove(amountBlockedForTransfer.TransactionId);
-        }
-
+     
         public void Handle(Deposit deposit)
         {
-            Causes(new AmountDeposited(number, deposit.Amount));
+            Causes(new AmountDeposited(deposit.TransactionId, number, deposit.Amount));
         }
 
         public void Apply(AmountDeposited amountDeposited)
@@ -63,17 +59,34 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
 
         public void Handle(Withdraw withdraw)
         {
-            if (balance < withdraw.Amount)
+            if (!IsWithdrawPartOfATransfer(withdraw.TransactionId))
             {
-                Sender.Tell(new InsufficiantBalance(number, withdraw.Amount, balance));
+                if (AvailableBalance < withdraw.Amount)
+                {
+                    Sender.Tell(new InsufficiantBalance(number, withdraw.Amount, AvailableBalance));
+                    return;
+                }
             }
 
-            Causes(new AmountWithdrawn(number, withdraw.Amount));
+            Causes(new AmountWithdrawn(withdraw.TransactionId, number, withdraw.Amount));
         }
+
 
         public void Apply(AmountWithdrawn amountWithdrawn)
         {
-            balance -= amountWithdrawn.Amount;
+            if (IsWithdrawPartOfATransfer(amountWithdrawn.TransactionId))
+            {
+                var amount = outstandingTransfers[amountWithdrawn.TransactionId];
+                outstandingTransfers.Remove(amountWithdrawn.TransactionId);
+                balance -= amount;
+            }
+            else
+                balance -= amountWithdrawn.Amount;
+        }
+        
+        private bool IsWithdrawPartOfATransfer(Guid transacionId)
+        {
+           return outstandingTransfers.ContainsKey(transacionId);
         }
 
         public void Handle(QueryBalance queryBalance)
@@ -132,28 +145,6 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
         public double ReleasedAmount { get; }
     }
 
-    public class WithdrawBlockedAmount
-    {
-        public WithdrawBlockedAmount( Guid transactionId)
-        {
-            TransactionId = transactionId;
-        }
-
-        public Guid TransactionId { get; }
-    }
-
-    public class BlockedAmountWithdrawn
-    {
-        public BlockedAmountWithdrawn(Guid transactionId, double withdrawnAmount)
-        {
-            TransactionId = transactionId;
-            WithdrawnAmount = withdrawnAmount;
-        }
-
-        public Guid TransactionId { get; }
-        public double WithdrawnAmount { get; }
-    }
-
     public class QueryBalance
     {
         public QueryBalance(int number)
@@ -180,11 +171,14 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
 
     public class Deposit
     {
-        public Deposit(int number, double amount)
+        public Deposit(Guid transactionId, int number, double amount)
         {
+            TransactionId = transactionId;
             Number = number;
             Amount = amount;
         }
+
+        public Guid TransactionId { get; }
         public int Number { get; set; }
         public double Amount { get; set; }
 
@@ -192,12 +186,14 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
 
     public class AmountDeposited
     {
-        public AmountDeposited(int number, double amount)
+        public AmountDeposited(Guid transactionId, int number, double amount)
         {
+            TransactionId = transactionId;
             Number = number;
             Amount = amount;
         }
 
+        public Guid TransactionId { get; }
         public int Number { get; set; }
         public double Amount { get; set; }
 
@@ -206,12 +202,14 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
     public class Withdraw
     {
 
-        public Withdraw(int number, double amount)
+        public Withdraw(Guid transactionId, int number, double amount)
         {
+            TransactionId = transactionId;
             Number = number;
             Amount = amount;
         }
 
+        public Guid TransactionId { get; }
         public int Number { get;  }
         public double Amount { get;  }
 
@@ -220,12 +218,14 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
     public class AmountWithdrawn
     {
 
-        public AmountWithdrawn(int number, double amount)
+        public AmountWithdrawn(Guid transactionId, int number, double amount)
         {
+            TransactionId = transactionId;
             Number = number;
             Amount = amount;
         }
 
+        public Guid TransactionId { get; }
         public int Number { get;  }
         public double Amount { get;  }
 
