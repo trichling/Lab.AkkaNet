@@ -46,7 +46,20 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
             outstandingTransfers.Add(amountBlockedForTransfer.TransactionId, amountBlockedForTransfer.Amount);
         }
 
-     
+        public void Handle(ReleaseBlockedAmount  releaseBlockedAmount)
+        {
+            if (outstandingTransfers.TryGetValue(releaseBlockedAmount.TransactionId, out var value))
+            {
+                Causes(new BlockedAmountReleased(releaseBlockedAmount.TransactionId, value));
+            }
+        }
+
+        public void Apply(BlockedAmountReleased blockedAmountReleased)
+        {
+            outstandingTransfers.Remove(blockedAmountReleased.TransactionId);
+        }
+
+
         public void Handle(Deposit deposit)
         {
             Causes(new AmountDeposited(deposit.TransactionId, number, deposit.Amount));

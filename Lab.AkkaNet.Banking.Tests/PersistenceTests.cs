@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Data.SqlClient;
 using System.Threading;
 using System.Threading.Tasks;
 using Akka.Actor;
 using Akka.TestKit.Xunit;
 using Lab.AkkaNet.Banking.Actors.PersistenceExample;
 using Xunit;
+using Dapper;
 
 namespace Lab.AkkaNet.Banking.Tests
 {
@@ -25,6 +27,15 @@ akka {{
                 lifecycle = on
                 event-stream = on
                 unhandled = on
+        }}
+        serializers {{
+            custom-json = ""Lab.AkkaNet.Banking.Actors.Serialization.AkkaJsonNetSerailizer, Lab.AkkaNet.Banking.Actors""
+        }}
+        serialization-bindings {{
+            ""Lab.AkkaNet.Banking.Actors.PersistenceExample.IEvent, Lab.AkkaNet.Banking.Actors"" = custom-json
+        }}
+        serialization-identifiers {{
+            ""Lab.AkkaNet.Banking.Actors.Serialization.AkkaJsonNetSerailizer, Lab.AkkaNet.Banking.Actors"" = 42
         }}
     }}
     persistence {{
@@ -62,10 +73,12 @@ akka {{
 
 }}";
 
+       
+
         public PersistenceTests()  
             : base(GetConfigurationString())
         {
-            
+
         }
 
         public void Dispose()
@@ -75,26 +88,19 @@ akka {{
         }
 
         [Fact]
-        public async void CheckBalance()
+        public async void QueryBalance()
         {
-            var eventProbe = CreateTestProbe("events");
-            Sys.EventStream.Subscribe(eventProbe, typeof(TransferSucceeded));
-
             var bank = ActorOfAsTestActorRef<Bank>(Bank.Create("Sparkasse")); // Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
-
-            // bank.Tell(new Open(1, 100)); // bob
-            // bank.Tell(new Open(2, 100)); // sam
-
             var bobBalance = await bank.Ask<double>(new QueryAccountBalance(1));
             var samBalance = await bank.Ask<double>(new QueryAccountBalance(2));
-
-            Assert.Equal(50, bobBalance);
-            Assert.Equal(150, samBalance);
         }
 
         [Fact]
         public async void SimpleTransfer()
         {
+            var connection = new SqlConnection(DbConnectionString);
+            connection.Execute("TRUNCATE TABLE Banking_Journal");
+
             var eventProbe = CreateTestProbe("events");
             Sys.EventStream.Subscribe(eventProbe, typeof(TransferSucceeded));
 
@@ -116,6 +122,9 @@ akka {{
         [Fact]
         public async void InsufficientBalance()
         {
+            var connection = new SqlConnection(DbConnectionString);
+            connection.Execute("TRUNCATE TABLE Banking_Journal");
+
             var eventProbe = CreateTestProbe("events");
             Sys.EventStream.Subscribe(eventProbe, typeof(TransferCanceled));
 
@@ -138,6 +147,9 @@ akka {{
         [Fact]
         public async void TheMillionaresGame()
         {
+            var connection = new SqlConnection(DbConnectionString);
+            connection.Execute("TRUNCATE TABLE Banking_Journal");
+
             var transactionCount = 1000;
             var bank = Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
 
@@ -168,6 +180,8 @@ akka {{
                 if (result.SucceededTransfers + result.CanceledTransfers == transactionCount * 2)
                     break;
             } while (true) ;
+
+            Thread.Sleep(1000);
 
             var bobBalance = await bank.Ask<double>(new QueryAccountBalance(1));
             var samBalance = await bank.Ask<double>(new QueryAccountBalance(2));

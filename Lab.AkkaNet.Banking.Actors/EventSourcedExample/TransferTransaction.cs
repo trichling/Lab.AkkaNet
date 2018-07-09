@@ -28,29 +28,6 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
             this.transferBalance = transferBalance;
         }
 
-        // protected override void OnReceive(object message)
-        // {
-
-        // }
-
-        // protected override void PreStart()
-        // {
-        //     Become(WaitForTransferInitialization());
-        // }
-
-        // private UntypedReceive WaitForTransferInitialization()
-        // {
-        //     return message => 
-        //     {
-        //         switch (message)
-        //         {
-        //             case Transfer transfer:
-        //                 Handle(transfer);
-        //             break;
-        //         }
-        //     };
-        // }
-
         public void Handle(Transfer transfer)
         {
             source.Account.Tell(new BlockAmounteForTransfer(source.Number, transferBalance, transactionId));
@@ -73,7 +50,6 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
                 {
                     case InsufficiantBalance insufficiantBalance:
                         Causes(new TransferCanceled(transactionId));
-                        Context.Stop(Self);
                     break;
 
                     case AmountBlockedForTransfer amountBlockedForTransfer:
@@ -115,7 +91,6 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
                 {
                     case BlockedAmountReleased amountReleased when amountReleased.TransactionId == transactionId:
                         Causes(new TransferCanceled(transactionId));
-                        Context.Stop(Self);
                     break;
                 }
             };
@@ -130,7 +105,6 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
                 {
                     case AmountWithdrawn amountWithdrawn:
                         Causes(new TransferSucceeded(transactionId, source.Number, destination.Number, transferBalance));
-                        Context.Stop(Self);
                     break;
                 }
             };
@@ -144,6 +118,7 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
             Context.Parent.Tell(transferCanceled);
 
             this.transferState = "Canceled";
+            Context.Stop(Self);
         }
 
         public void Apply(TransferSucceeded transferSucceeded)
@@ -154,6 +129,7 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
             Context.Parent.Tell(transferSucceeded);
 
             this.transferState = "Succeeded";
+            Context.Stop(Self);
         }
     }
 

@@ -93,7 +93,6 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
                 {
                     case BlockedAmountReleased amountReleased when amountReleased.TransactionId == transactionId:
                         Causes(new TransferCanceled(transactionId));
-                        Context.Stop(Self);
                     break;
                 }
             };
@@ -108,7 +107,6 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
                 {
                     case AmountWithdrawn amountWithdrawn:
                         Causes(new TransferSucceeded(transactionId, source.Number, destination.Number, transferBalance));
-                        Context.Stop(Self);
                     break;
                 }
             };
@@ -119,9 +117,10 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
             if (initiator != null)
                 initiator.Tell(transferCanceled);
             
-            Context.Parent.Tell(transferCanceled);
-
             this.transferState = "Canceled";
+
+            Context.Stop(Self);
+
         }
 
         public void Apply(TransferSucceeded transferSucceeded)
@@ -129,9 +128,10 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
             if (initiator != null)
                 initiator.Tell(transferSucceeded);
             
-            Context.Parent.Tell(transferSucceeded);
-
             this.transferState = "Succeeded";
+
+            Context.Stop(Self);
+
         }
     }
 

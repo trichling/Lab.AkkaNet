@@ -16,18 +16,20 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
 
         private double balance;
 
-        private Dictionary<Guid, double> outstandingTransfers;
+        private Dictionary<Guid, double> outgoingTransfers;
+        private Dictionary<Guid, double> incomingTransfers;
 
         public Account(int number, double initialBalance)
         {
             this.number = number;
             this.balance = initialBalance;
-            this.outstandingTransfers = new Dictionary<Guid, double>();
+            this.outgoingTransfers = new Dictionary<Guid, double>();
+            this.incomingTransfers = new Dictionary<Guid, double>();
         }
 
         public override string PersistenceId => $"Account-{number}";
 
-        public double AvailableBalance => balance - outstandingTransfers.Sum(t => t.Value);
+        public double AvailableBalance => balance - outgoingTransfers.Sum(t => t.Value);
 
         public void Handle(BlockAmounteForTransfer blockAmountForTransfer)
         {
@@ -45,14 +47,32 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
 
         public void Apply(AmountBlockedForTransfer amountBlockedForTransfer)
         {
-            outstandingTransfers.Add(amountBlockedForTransfer.TransactionId, amountBlockedForTransfer.Amount);
+            outgoingTransfers.Add(amountBlockedForTransfer.TransactionId, amountBlockedForTransfer.Amount);
         }
 
-     
+        public void Handle(ReleaseBlockedAmount  releaseBlockedAmount)
+        {
+            if (outgoingTransfers.TryGetValue(releaseBlockedAmount.TransactionId, out var value))
+            {
+                Causes(new BlockedAmountReleased(releaseBlockedAmount.TransactionId, value));
+            }
+        }
+
+        public void Apply(BlockedAmountReleased blockedAmountReleased)
+        {
+            outgoingTransfers.Remove(blockedAmountReleased.TransactionId);
+        }
+
         public void Handle(Deposit deposit)
         {
             Causes(new AmountDeposited(deposit.TransactionId, number, deposit.Amount));
         }
+
+         private bool IsDepositPartOfATransfer(Guid transacionId)
+        {
+           return incomingTransfers.ContainsKey(transacionId);
+        }
+
 
         public void Apply(AmountDeposited amountDeposited)
         {
@@ -78,8 +98,8 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
         {
             if (IsWithdrawPartOfATransfer(amountWithdrawn.TransactionId))
             {
-                var amount = outstandingTransfers[amountWithdrawn.TransactionId];
-                outstandingTransfers.Remove(amountWithdrawn.TransactionId);
+                var amount = outgoingTransfers[amountWithdrawn.TransactionId];
+                outgoingTransfers.Remove(amountWithdrawn.TransactionId);
                 balance -= amount;
             }
             else
@@ -88,7 +108,7 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
         
         private bool IsWithdrawPartOfATransfer(Guid transacionId)
         {
-           return outstandingTransfers.ContainsKey(transacionId);
+           return outgoingTransfers.ContainsKey(transacionId);
         }
 
         public void Handle(QueryBalance queryBalance)
@@ -113,7 +133,7 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
         public Guid TransactionId { get; }
     }
 
-    public class AmountBlockedForTransfer
+    public class AmountBlockedForTransfer : IEvent
     {
         public AmountBlockedForTransfer(double amount, Guid transactionId)
         {
@@ -125,7 +145,7 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
         public Guid TransactionId { get; }
     }
 
-    public class ReleaseBlockedAmount
+    public class ReleaseBlockedAmount 
     {
         public ReleaseBlockedAmount( Guid transactionId)
         {
@@ -135,7 +155,7 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
         public Guid TransactionId { get; }
     }
 
-    public class BlockedAmountReleased
+    public class BlockedAmountReleased : IEvent
     {
         public BlockedAmountReleased(Guid transactionId, double releasedAmount)
         {
@@ -186,7 +206,7 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
 
     }
 
-    public class AmountDeposited
+    public class AmountDeposited : IEvent
     {
         public AmountDeposited(Guid transactionId, int number, double amount)
         {
@@ -217,7 +237,7 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
 
     }
 
-    public class AmountWithdrawn
+    public class AmountWithdrawn : IEvent
     {
 
         public AmountWithdrawn(Guid transactionId, int number, double amount)

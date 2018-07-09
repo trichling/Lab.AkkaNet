@@ -1,10 +1,22 @@
-﻿using Akka.Actor;
+﻿using System;
+using Akka.Actor;
 using Akka.Persistence;
 
 namespace Lab.AkkaNet.Banking.Actors.ActorBase
 {
     public abstract class EventSourcedUntypedPresistentActor : UntypedPersistentActor
     {
+
+        protected override void OnPersistFailure(Exception cause, object @event, long sequenceNr)
+        {
+
+        }
+
+        protected override void OnRecoveryFailure(Exception reason, object message = null)
+        {
+
+        }
+
         protected override void OnCommand(object command)
         {
             ((dynamic)this).Handle((dynamic)command);

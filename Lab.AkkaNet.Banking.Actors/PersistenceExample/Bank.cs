@@ -25,16 +25,6 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
 
         public override string PersistenceId => $"Bank-{name}";
 
-        protected override void OnPersistFailure(Exception cause, object @event, long sequenceNr)
-        {
-
-        }
-
-        protected override void OnRecoveryFailure(Exception reason, object message = null)
-        {
-
-        }
-
         public void Handle(QueryAccountBalance queryAccountBalance)
         {
             var account = Context.Child($"Account-{queryAccountBalance.Number}");
@@ -64,7 +54,7 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
             var targetAccount = Context.Child($"Account-{transfer.TargetAccountNumber}");
 
             var transactionId = Guid.NewGuid();
-            var transferTransaction = Context.ActorOf(TransferTransaction.Create(Sender, transactionId, (transfer.SourceAccountNumber, sourceAccount), (transfer.TargetAccountNumber, targetAccount), transfer.Amount), $"Transaction-{transactionId}");
+            var transferTransaction = Context.ActorOf(TransferTransaction.Create(Self, transactionId, (transfer.SourceAccountNumber, sourceAccount), (transfer.TargetAccountNumber, targetAccount), transfer.Amount), $"Transaction-{transactionId}");
             transferTransaction.Tell(transfer);
             Causes(new TransferStarted(transactionId, transfer.SourceAccountNumber, transfer.TargetAccountNumber, transfer.Amount));
         }
@@ -81,8 +71,8 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
 
         public void Apply(TransferSucceeded successfulTransfer)
         {
-            openTransfers.Remove(successfulTransfer.TransactionId);
-            succeededTransfers++;
+            if (openTransfers.Remove(successfulTransfer.TransactionId))
+                succeededTransfers++;
         }
 
         public void Handle(TransferCanceled canceledTransfer)
@@ -92,8 +82,8 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
 
         public void Apply(TransferCanceled canceledTransfer)
         {
-            openTransfers.Remove(canceledTransfer.TransactionId);
-            canceledTransfers++;
+            if (openTransfers.Remove(canceledTransfer.TransactionId))
+                canceledTransfers++;
         }
 
        
@@ -148,7 +138,7 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
         public double Amount { get; }
     }
 
-    public class TransferStarted
+    public class TransferStarted : IEvent
     {
 
         public TransferStarted(Guid transactionId, int sourceAccountNumber, int targetAccountNumber, double amount)
@@ -165,7 +155,7 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
         public double Amount { get; }
     }
 
-    public class TransferCanceled
+    public class TransferCanceled : IEvent
     {
         public TransferCanceled(Guid transactionId)
         {
@@ -175,7 +165,7 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
         public Guid TransactionId { get; }
     }
 
-    public class TransferTimedOut
+    public class TransferTimedOut : IEvent
     {
 
         public TransferTimedOut(Guid transactionId)
@@ -186,8 +176,8 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
         public Guid TransactionId { get; }
     }
 
-    public class TransferSucceeded
-    {
+    public class TransferSucceeded : IEvent
+    { 
 
         public TransferSucceeded(Guid transactionId, int sourceAccountNumber, int targetAccountNumber, double amount)
         {
@@ -217,7 +207,7 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
 
     }
 
-    public class AccountOpened
+    public class AccountOpened : IEvent
     {
         
         public AccountOpened(int number, double initialBalance)

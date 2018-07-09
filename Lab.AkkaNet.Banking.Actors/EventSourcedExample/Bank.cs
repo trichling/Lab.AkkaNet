@@ -67,8 +67,8 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
 
         public void Apply(TransferSucceeded successfulTransfer)
         {
-            openTransfers.Remove(successfulTransfer.TransactionId);
-            succeededTransfers++;
+            if (openTransfers.Remove(successfulTransfer.TransactionId))
+                succeededTransfers++;
         }
 
         public void Handle(TransferCanceled canceledTransfer)
@@ -78,8 +78,8 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
 
         public void Apply(TransferCanceled canceledTransfer)
         {
-            openTransfers.Remove(canceledTransfer.TransactionId);
-            canceledTransfers++;
+            if (openTransfers.Remove(canceledTransfer.TransactionId))
+                canceledTransfers++;
         }
 
        
