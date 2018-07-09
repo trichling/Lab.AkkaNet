@@ -4,9 +4,10 @@ using System.Text;
 using Akka.Actor;
 using Lab.AkkaNet.Banking.Actors.ActorBase;
 
-namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
+namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
 {
-    public class Bank : EventSourcedUntypedActor
+
+    public class Bank : EventSourcedUntypedPresistentActor
     {
         public static Props Create(string name) => Props.Create(() => new Bank(name));
 
@@ -15,10 +16,23 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
         private int succeededTransfers;
         private int canceledTransfers;
 
+
         public Bank(string name)
         {
             this.name = name;
             this.openTransfers = new HashSet<Guid>();
+        }
+
+        public override string PersistenceId => $"Bank-{name}";
+
+        protected override void OnPersistFailure(Exception cause, object @event, long sequenceNr)
+        {
+
+        }
+
+        protected override void OnRecoveryFailure(Exception reason, object message = null)
+        {
+
         }
 
         public void Handle(QueryAccountBalance queryAccountBalance)

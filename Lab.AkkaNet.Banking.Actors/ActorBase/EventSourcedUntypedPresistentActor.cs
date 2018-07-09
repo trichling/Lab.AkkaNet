@@ -1,4 +1,5 @@
-﻿using Akka.Persistence;
+﻿using Akka.Actor;
+using Akka.Persistence;
 
 namespace Lab.AkkaNet.Banking.Actors.ActorBase
 {
@@ -18,6 +19,8 @@ namespace Lab.AkkaNet.Banking.Actors.ActorBase
         {
             Persist(@event, DispatchToApply);
             Context.System.EventStream.Publish(@event);
+            if (Sender != null)
+                Sender.Tell(@event);
         }
 
         protected override void OnRecover(object @event)

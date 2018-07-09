@@ -4,9 +4,9 @@ using System.Text;
 using Akka.Actor;
 using Lab.AkkaNet.Banking.Actors.ActorBase;
 
-namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
+namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
 {
-    public class TransferTransaction : EventSourcedUntypedActor
+    public class TransferTransaction : EventSourcedUntypedPresistentActor
     {
         private IActorRef initiator;
         private (int Number, IActorRef Account) source;
@@ -16,10 +16,11 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
 
         private string transferState;
 
+        public override string PersistenceId => $"Transaction-{transactionId.ToString()}";
 
         public static Props Create(IActorRef initiator, Guid transactionId, (int Number, IActorRef Actor) source, (int Number, IActorRef Actor) destination, double transferAmount) => Props.Create(() => new TransferTransaction(initiator, transactionId, source, destination, transferAmount));
 
-        public TransferTransaction(IActorRef initiator, Guid transactionId, (int Number, IActorRef Actor) source,  (int Number, IActorRef Actor) destination, double transferBalance)
+      public TransferTransaction(IActorRef initiator, Guid transactionId, (int Number, IActorRef Actor) source,  (int Number, IActorRef Actor) destination, double transferBalance)
         {
             this.initiator = initiator;
             this.transactionId = transactionId;
@@ -27,29 +28,6 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
             this.destination = destination;
             this.transferBalance = transferBalance;
         }
-
-        // protected override void OnReceive(object message)
-        // {
-
-        // }
-
-        // protected override void PreStart()
-        // {
-        //     Become(WaitForTransferInitialization());
-        // }
-
-        // private UntypedReceive WaitForTransferInitialization()
-        // {
-        //     return message => 
-        //     {
-        //         switch (message)
-        //         {
-        //             case Transfer transfer:
-        //                 Handle(transfer);
-        //             break;
-        //         }
-        //     };
-        // }
 
         public void Handle(Transfer transfer)
         {

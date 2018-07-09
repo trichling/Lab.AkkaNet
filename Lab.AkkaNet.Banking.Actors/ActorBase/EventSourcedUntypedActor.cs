@@ -17,7 +17,8 @@ namespace Lab.AkkaNet.Banking.Actors.ActorBase
         {
             DispatchToApply(@event);
             Context.System.EventStream.Publish(@event);
-            Sender.Tell(@event);
+            if (Sender != null)
+                Sender.Tell(@event);
         }
 
         private void DispatchToApply(object @event)
