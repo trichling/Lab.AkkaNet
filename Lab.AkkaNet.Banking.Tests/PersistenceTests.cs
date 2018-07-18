@@ -125,7 +125,7 @@ akka {{
             var connection = new SqlConnection(DbConnectionString);
             connection.Execute("TRUNCATE TABLE Banking_Journal");
 
-            var transactionCount = 1000000;
+            var transactionCount = 10000;
             var bank = Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
             var tellProbe = CreateTestProbe();
 
