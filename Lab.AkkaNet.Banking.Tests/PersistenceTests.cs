@@ -102,7 +102,7 @@ akka {{
             connection.Execute("TRUNCATE TABLE Banking_Journal");
 
             var eventProbe = CreateTestProbe("events");
-            Sys.EventStream.Subscribe(eventProbe, typeof(TransferSucceeded));
+            Sys.EventStream.Subscribe(eventProbe, typeof(MoneyTransfered));
 
             var bank = ActorOfAsTestActorRef<Bank>(Bank.Create("Sparkasse")); // Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
 
@@ -110,7 +110,7 @@ akka {{
             bank.Tell(new Open(2, 100)); // sam
             bank.Tell(new Transfer(1, 2, 50));
 
-            eventProbe.ExpectMsg<TransferSucceeded>(TimeSpan.FromMinutes(2));
+            eventProbe.ExpectMsg<MoneyTransfered>(TimeSpan.FromMinutes(2));
 
             var bobBalance = await bank.Ask<double>(new QueryAccountBalance(1));
             var samBalance = await bank.Ask<double>(new QueryAccountBalance(2));
@@ -120,38 +120,15 @@ akka {{
         }
 
         [Fact]
-        public async void InsufficientBalance()
-        {
-            var connection = new SqlConnection(DbConnectionString);
-            connection.Execute("TRUNCATE TABLE Banking_Journal");
-
-            var eventProbe = CreateTestProbe("events");
-            Sys.EventStream.Subscribe(eventProbe, typeof(TransferCanceled));
-
-            var bank = Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
-
-            bank.Tell(new Open(1, 100)); // bob
-            bank.Tell(new Open(2, 100)); // sam
-            
-            bank.Tell(new Transfer(1, 2, 500));
-            eventProbe.ExpectMsg<TransferCanceled>();
-
-            var bobBalance = await bank.Ask<double>(new QueryAccountBalance(1));
-            var samBalance = await bank.Ask<double>(new QueryAccountBalance(2));
-
-            Assert.Equal(100, bobBalance);
-            Assert.Equal(100, samBalance);
-        }
-
-
-        [Fact]
         public async void TheMillionaresGame()
         {
             var connection = new SqlConnection(DbConnectionString);
             connection.Execute("TRUNCATE TABLE Banking_Journal");
 
-            var transactionCount = 1000;
+            var transactionCount = 1000000;
             var bank = Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
+            var tellProbe = CreateTestProbe();
+
 
             bank.Tell(new Open(1, 1000000)); // bob
             bank.Tell(new Open(2, 1000000)); // sam
@@ -160,7 +137,8 @@ akka {{
             {
                 for (int i = 0; i < transactionCount; i++)
                 {
-                    bank.Tell(new Transfer(1, 2, 1));
+                    bank.Tell(new Transfer(1, 2, 1), tellProbe);
+                    tellProbe.ExpectMsg<MoneyTransfered>();
                 }
             });
 
@@ -168,18 +146,12 @@ akka {{
             {
                 for (int i = 0; i < transactionCount; i++)
                 {
-                   bank.Tell(new Transfer(2, 1, 1));
+                    bank.Tell(new Transfer(2, 1, 1), tellProbe);
+                    tellProbe.ExpectMsg<MoneyTransfered>();
                 }
             });
 
             Task.WaitAll(bobToSam, samToBob);
-
-            do
-            {
-                var result = await bank.Ask<AuditResult>(new Audit());
-                if (result.SucceededTransfers + result.CanceledTransfers == transactionCount * 2)
-                    break;
-            } while (true) ;
 
             Thread.Sleep(1000);
 
