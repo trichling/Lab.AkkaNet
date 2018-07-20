@@ -29,7 +29,12 @@ namespace Lab.AkkaNet.Banking.Actors.ActorBase
 
         public void Causes(object @event)
         {
-            Persist(@event, DispatchToApply);
+            Persist(@event, Publish);
+        }
+
+        private void Publish(object @event)
+        {
+            DispatchToApply(@event);
             Context.System.EventStream.Publish(@event);
             if (Sender != null)
                 Sender.Tell(@event);

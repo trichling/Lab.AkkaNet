@@ -9,13 +9,7 @@ namespace Lab.AkkaNet.Banking.Actors
     {
         static void Main(string[] args)
         {
-            // UntypedExample.Examples.TheFundraiser();
-            // UntypedExample.Examples.TheMillionaresGame();
-            // UntypedExample.Examples.TheLuckyLooserWithTheSadWinner();
-
-            //EventSourcedExample.Examples.TheFundraiser();
-            EventSourcedExample.Examples.TheMillionaresGame();
-
+            
             Console.ReadLine();
         }
       

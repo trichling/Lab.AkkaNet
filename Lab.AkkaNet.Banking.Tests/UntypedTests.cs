@@ -1,14 +1,19 @@
+using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Akka.Actor;
+using Akka.TestKit.Xunit;
+using Lab.AkkaNet.Banking.Actors.UntypedExample;
+using Xunit;
 
-namespace Lab.AkkaNet.Banking.Actors.UntypedExample 
+namespace Lab.AkkaNet.Banking.Tests
 {
-
-    public class Examples
+    public class UntypedTests : TestKit
     {
 
-        public static void TheFundraiser()
+        [Fact]
+        public void TheFundraiser()
         {
             var bankingSystem = ActorSystem.Create("bankingSystem");
             var bobsAccount = bankingSystem.ActorOf(Account.Create(1, 0));
@@ -27,7 +32,8 @@ namespace Lab.AkkaNet.Banking.Actors.UntypedExample
             var balance = bobsAccount.Ask<double>(new QueryBalance(1)).Result;
         }
 
-        public static void TheMillionaresGame()
+        [Fact]
+        public void TheMillionaresGame()
         {
             var bankingSystem = ActorSystem.Create("bankingSystem");
             var bank = bankingSystem.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
@@ -57,7 +63,8 @@ namespace Lab.AkkaNet.Banking.Actors.UntypedExample
             var samaBalance = bank.Ask<double>(new QueryAccountBalance(2)).Result;
         }
 
-        public static void TheLuckyLooserWithTheSadWinner()
+        [Fact]
+        public void TheLuckyLooserWithTheSadWinner()
         {
             var bankingSystem = ActorSystem.Create("bankingSystem");
             var bank = bankingSystem.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
@@ -80,6 +87,6 @@ namespace Lab.AkkaNet.Banking.Actors.UntypedExample
             var sadWinnerBalance = bank.Ask<double>(new QueryAccountBalance(2)).Result;
         }
 
-    }
 
+    }
 }
