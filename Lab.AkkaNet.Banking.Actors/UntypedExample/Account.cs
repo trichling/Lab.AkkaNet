@@ -8,12 +8,12 @@ namespace Lab.AkkaNet.Banking.Actors.UntypedExample
     public class Account : UntypedActor
     {
 
-        public static Props Create(int number, double initialBalance) => Props.Create(() => new Account(number, initialBalance));
+        public static Props Create(int number, decimal initialBalance) => Props.Create(() => new Account(number, initialBalance));
 
         private int number;
-        private double balance;
+        private decimal balance;
 
-        public Account(int number, double initialBalance)
+        public Account(int number, decimal initialBalance)
         {
             this.number = number;
             this.balance = initialBalance;
@@ -51,27 +51,27 @@ namespace Lab.AkkaNet.Banking.Actors.UntypedExample
 
     public class Deposit
     {
-        public Deposit(int number, double amount)
+        public Deposit(int number, decimal amount)
         {
             Number = number;
             Amount = amount;
         }
         public int Number { get; set; }
-        public double Amount { get; set; }
+        public decimal Amount { get; set; }
 
     }
 
     public class Withdraw
     {
 
-        public Withdraw(int number, double amount)
+        public Withdraw(int number, decimal amount)
         {
             Number = number;
             Amount = amount;
         }
 
         public int Number { get; set; }
-        public double Amount { get; set; }
+        public decimal Amount { get; set; }
 
     }
 }

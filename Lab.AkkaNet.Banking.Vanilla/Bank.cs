@@ -16,14 +16,14 @@ namespace Lab.AkkaNet.Banking.Vanilla
 
         public string Name { get; }
 
-        public Account Open(int number, double initialBalance)
+        public Account Open(int number, decimal initialBalance)
         {
             var account = new Account(number, initialBalance);
             _accounts.Add(account.Number, account);
             return account;
         }
 
-        public void Transfer(int sourceAccountNumber, int targetAccountNumber, double amount)
+        public void Transfer(int sourceAccountNumber, int targetAccountNumber, decimal amount)
         {
             var sourceAccount = _accounts[sourceAccountNumber];
             var targetAccount = _accounts[targetAccountNumber];

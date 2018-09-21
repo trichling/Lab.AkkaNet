@@ -7,21 +7,21 @@ namespace Lab.AkkaNet.Banking.Vanilla
     public class Account
     {
 
-        public Account(int number, double initialBalance)
+        public Account(int number, decimal initialBalance)
         {
             Number = number;
             Balance = initialBalance;
         }
 
         public int Number { get; }
-        public double Balance { get; private set; }
+        public decimal Balance { get; private set; }
 
-        public void Deposit(double amount)
+        public void Deposit(decimal amount)
         {
             Balance += amount;
         }
 
-        public void Withdraw(double amount)
+        public void Withdraw(decimal amount)
         {
             Balance -= amount;
         }

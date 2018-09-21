@@ -7,6 +7,13 @@ using Akka.TestKit.Xunit;
 using Lab.AkkaNet.Banking.Actors.PersistenceExample;
 using Xunit;
 using Dapper;
+using Akka.Persistence.Query;
+using Akka.Persistence.Query.Sql;
+using Akka.Streams;
+using System.Collections.Generic;
+using System.Linq;
+using Akka.Streams.Dsl;
+using System.Collections.Immutable;
 
 namespace Lab.AkkaNet.Banking.Tests
 {
@@ -33,6 +40,7 @@ akka {{
         }}
         serialization-bindings {{
             ""Lab.AkkaNet.Banking.Actors.PersistenceExample.IEvent, Lab.AkkaNet.Banking.Actors"" = custom-json
+            ""Lab.AkkaNet.Banking.Actors.PersistenceExample.ISnapshot, Lab.AkkaNet.Banking.Actors"" = custom-json
         }}
         serialization-identifiers {{
             ""Lab.AkkaNet.Banking.Actors.Serialization.AkkaJsonNetSerailizer, Lab.AkkaNet.Banking.Actors"" = 42
@@ -91,8 +99,8 @@ akka {{
         public async void QueryBalance()
         {
             var bank = ActorOfAsTestActorRef<Bank>(Bank.Create("Sparkasse")); // Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
-            var bobBalance = await bank.Ask<double>(new QueryAccountBalance(1));
-            var samBalance = await bank.Ask<double>(new QueryAccountBalance(2));
+            var bobBalance = await bank.Ask<decimal>(new QueryAccountBalance(1));
+            var samBalance = await bank.Ask<decimal>(new QueryAccountBalance(2));
         }
 
         [Fact]
@@ -100,6 +108,7 @@ akka {{
         {
             var connection = new SqlConnection(DbConnectionString);
             connection.Execute("TRUNCATE TABLE Banking_Journal");
+            connection.Execute("TRUNCATE TABLE Banking_Snapshot");
 
             var eventProbe = CreateTestProbe("events");
             Sys.EventStream.Subscribe(eventProbe, typeof(MoneyTransfered));
@@ -112,11 +121,95 @@ akka {{
 
             eventProbe.ExpectMsg<MoneyTransfered>(TimeSpan.FromMinutes(2));
 
-            var bobBalance = await bank.Ask<double>(new QueryAccountBalance(1));
-            var samBalance = await bank.Ask<double>(new QueryAccountBalance(2));
+            var bobBalance = await bank.Ask<decimal>(new QueryAccountBalance(1));
+            var samBalance = await bank.Ask<decimal>(new QueryAccountBalance(2));
 
             Assert.Equal(50, bobBalance);
             Assert.Equal(150, samBalance);
+        }
+
+        [Fact]
+        public async void CurrentBalanceReadModel()
+        {
+            var connection = new SqlConnection(DbConnectionString);
+            connection.Execute("TRUNCATE TABLE Banking_Journal");
+            connection.Execute("TRUNCATE TABLE Banking_Snapshot");
+
+            var database = new AccountBalanceDatabase();
+            Sys.ActorOf(CurrentBalanceReadModelBuilder.Create(database));
+
+            var bank = ActorOfAsTestActorRef<Bank>(Bank.Create("Sparkasse")); // Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
+
+            bank.Tell(new Open(1, 100)); // bob
+            bank.Tell(new Open(2, 100)); // sam
+            bank.Tell(new Transfer(1, 2, 50));
+
+            Thread.Sleep(5000);
+
+            Assert.Equal(50M, database.Select(1));
+            Assert.Equal(150M, database.Select(2));
+        }
+
+        [Fact]
+        public async void CanGetAllAccountIds()
+        {
+            var connection = new SqlConnection(DbConnectionString);
+            connection.Execute("TRUNCATE TABLE Banking_Journal");
+            connection.Execute("TRUNCATE TABLE Banking_Snapshot");
+
+            var bank = ActorOfAsTestActorRef<Bank>(Bank.Create("Sparkasse")); // Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
+
+            bank.Tell(new Open(1, 100)); // bob
+            bank.Tell(new Open(2, 100)); // sam
+            bank.Tell(new Transfer(1, 2, 50));
+
+            Thread.Sleep(5000);
+
+            var readJournal = Sys.ReadJournalFor<SqlReadJournal>(SqlReadJournal.Identifier);
+            var materializer = ActorMaterializer.Create(Sys);
+
+            var allPersistenceIds = new List<string>();
+            var allPersistenceIdsQuery = readJournal.CurrentPersistenceIds();
+
+            await allPersistenceIdsQuery.RunForeach(id =>
+            {
+                allPersistenceIds.Add(id);
+            }, materializer);
+
+            var allAccounts = allPersistenceIds.Where(id => id.StartsWith($"Account-"));
+
+            Assert.Equal(2, allAccounts.Count());
+        }
+
+        [Fact]
+        public async void CanGetAllAccount1Events()
+        {
+            var connection = new SqlConnection(DbConnectionString);
+            connection.Execute("TRUNCATE TABLE Banking_Journal");
+            connection.Execute("TRUNCATE TABLE Banking_Snapshot");
+
+            var bank = ActorOfAsTestActorRef<Bank>(Bank.Create("Sparkasse")); // Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
+
+            bank.Tell(new Open(1, 100)); // bob
+            bank.Tell(new Open(2, 100)); // sam
+            bank.Tell(new Transfer(1, 2, 50));
+
+            Thread.Sleep(5000);
+
+            var readJournal = Sys.ReadJournalFor<SqlReadJournal>(SqlReadJournal.Identifier);
+            var materializer = ActorMaterializer.Create(Sys);
+
+            var historyOfAccount = new List<object>();
+            var historyOfAccountQuery = readJournal.CurrentEventsByPersistenceId("Account-1", 0L, long.MaxValue);
+            var result = await historyOfAccountQuery
+                .Select(c => c.Event) //.RunForeach(e => historyOfStock.Add(e), _actorMaterializer);
+                .RunAggregate(
+                    ImmutableHashSet<object>.Empty,
+                    (acc, c) => acc.Add(c),
+                    materializer);
+
+            Assert.Equal(1, result.ToList().Count);
+            Assert.True(result.ToList()[0] is AmountWithdrawn);
         }
 
         [Fact]
@@ -124,8 +217,9 @@ akka {{
         {
             var connection = new SqlConnection(DbConnectionString);
             connection.Execute("TRUNCATE TABLE Banking_Journal");
+            connection.Execute("TRUNCATE TABLE Banking_Snapshot");
 
-            var transactionCount = 10000;
+            var transactionCount = 100;
             var bank = Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
             var tellProbe = CreateTestProbe();
 
@@ -155,11 +249,13 @@ akka {{
 
             Thread.Sleep(1000);
 
-            var bobBalance = await bank.Ask<double>(new QueryAccountBalance(1));
-            var samBalance = await bank.Ask<double>(new QueryAccountBalance(2));
+            var bobBalance = await bank.Ask<decimal>(new QueryAccountBalance(1));
+            var samBalance = await bank.Ask<decimal>(new QueryAccountBalance(2));
 
             Assert.Equal(1000000, samBalance);
             Assert.Equal(1000000, bobBalance);
         }
+
+       
     }
 }

@@ -29,7 +29,7 @@ namespace Lab.AkkaNet.Banking.Tests
 
             Task.WaitAll(tasks.ToArray());
 
-            var balance = bobsAccount.Ask<double>(new QueryBalance(1)).Result;
+            var balance = bobsAccount.Ask<decimal>(new QueryBalance(1)).Result;
         }
 
         [Fact]
@@ -59,8 +59,8 @@ namespace Lab.AkkaNet.Banking.Tests
 
             Task.WaitAll(bobToSam, samToBob);
 
-            var bobBalance = bank.Ask<double>(new QueryAccountBalance(1)).Result;
-            var samaBalance = bank.Ask<double>(new QueryAccountBalance(2)).Result;
+            var bobBalance = bank.Ask<decimal>(new QueryAccountBalance(1)).Result;
+            var samaBalance = bank.Ask<decimal>(new QueryAccountBalance(2)).Result;
         }
 
         [Fact]
@@ -83,8 +83,8 @@ namespace Lab.AkkaNet.Banking.Tests
 
             Task.WaitAll(tasks.ToArray());
 
-            var luckyLooserBalance = bank.Ask<double>(new QueryAccountBalance(1)).Result;
-            var sadWinnerBalance = bank.Ask<double>(new QueryAccountBalance(2)).Result;
+            var luckyLooserBalance = bank.Ask<decimal>(new QueryAccountBalance(1)).Result;
+            var sadWinnerBalance = bank.Ask<decimal>(new QueryAccountBalance(2)).Result;
         }
 
 

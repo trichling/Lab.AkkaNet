@@ -15,6 +15,11 @@ namespace Lab.AkkaNet.Banking.Actors.ActorBase
 
         protected void Causes(object @event)
         {
+            Publish(@event);
+        }
+
+        private void Publish(object @event)
+        {
             DispatchToApply(@event);
             Context.System.EventStream.Publish(@event);
             if (Sender != null)

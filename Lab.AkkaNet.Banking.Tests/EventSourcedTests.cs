@@ -47,8 +47,8 @@ akka {{
 
             eventProbe.ExpectMsg<MoneyTransfered>();
 
-            var bobBalance = await bank.Ask<double>(new QueryAccountBalance(1));
-            var samBalance = await bank.Ask<double>(new QueryAccountBalance(2));
+            var bobBalance = await bank.Ask<decimal>(new QueryAccountBalance(1));
+            var samBalance = await bank.Ask<decimal>(new QueryAccountBalance(2));
 
             Assert.Equal(50, bobBalance);
             Assert.Equal(150, samBalance);
@@ -84,8 +84,8 @@ akka {{
 
             Task.WaitAll(bobToSam, samToBob);
 
-            var bobBalance = await bank.Ask<double>(new QueryAccountBalance(1));
-            var samBalance = await bank.Ask<double>(new QueryAccountBalance(2));
+            var bobBalance = await bank.Ask<decimal>(new QueryAccountBalance(1));
+            var samBalance = await bank.Ask<decimal>(new QueryAccountBalance(2));
 
             Assert.Equal(1000000, samBalance);
             Assert.Equal(1000000, bobBalance);

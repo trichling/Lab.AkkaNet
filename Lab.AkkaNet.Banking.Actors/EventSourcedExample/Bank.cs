@@ -79,35 +79,35 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
     public class Open
     {
         
-        public Open(int number, double initialBalance)
+        public Open(int number, decimal initialBalance)
         {
             Number = number;
             InitialBalance = initialBalance;
         }
 
         public int Number { get; }
-        public double InitialBalance { get; }
+        public decimal InitialBalance { get; }
 
     }
 
     public class AccountOpened : IEvent
     {
         
-        public AccountOpened(int number, double initialBalance)
+        public AccountOpened(int number, decimal initialBalance)
         {
             Number = number;
             InitialBalance = initialBalance;
         }
 
         public int Number { get; }
-        public double InitialBalance { get; }
+        public decimal InitialBalance { get; }
 
     }
 
     public class Transfer
     {
 
-        public Transfer(int sourceAccountNumber, int targetAccountNumber, double amount)
+        public Transfer(int sourceAccountNumber, int targetAccountNumber, decimal amount)
         {
             SourceAccountNumber = sourceAccountNumber;
             TargetAccountNumber = targetAccountNumber;
@@ -116,14 +116,14 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
 
         public int SourceAccountNumber { get; }
         public int TargetAccountNumber { get; }
-        public double Amount { get; }
+        public decimal Amount { get; }
     }
 
   
     public class MoneyTransfered : IEvent
     { 
 
-        public MoneyTransfered(Guid transactionId, int sourceAccountNumber, int targetAccountNumber, double amount)
+        public MoneyTransfered(Guid transactionId, int sourceAccountNumber, int targetAccountNumber, decimal amount)
         {
             TransactionId = transactionId;
             SourceAccountNumber = sourceAccountNumber;
@@ -134,7 +134,7 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
         public Guid TransactionId { get; }
         public int SourceAccountNumber { get; }
         public int TargetAccountNumber { get; }
-        public double Amount { get; }
+        public decimal Amount { get; }
     }
 
 
