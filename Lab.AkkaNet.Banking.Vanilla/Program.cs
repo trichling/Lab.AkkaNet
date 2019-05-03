@@ -8,8 +8,8 @@ namespace Lab.AkkaNet.Banking.Vanilla
     {
         static void Main(string[] args)
         {
-            TheMillionaresGame();
             TheFundraiser();
+            TheMillionaresGame();
             TheLuckyLooserWithTheSadWinner();
 
             Console.ReadLine();

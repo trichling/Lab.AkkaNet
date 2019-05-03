@@ -34,7 +34,7 @@ akka {{
         }
 
         [Fact]
-        public async void SimpleTransfer()
+        public async Task SimpleTransfer()
         {
             var eventProbe = CreateTestProbe("events");
             Sys.EventStream.Subscribe(eventProbe, typeof(MoneyTransfered));
@@ -55,9 +55,9 @@ akka {{
         }
 
         [Fact]
-        public async void TheMillionaresGame()
+        public async Task TheMillionaresGame()
         {
-            var transactionCount = 1000;
+            var transactionCount = 1000000;
             var bank = Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
             var tellProbe = CreateTestProbe();
 

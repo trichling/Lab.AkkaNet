@@ -13,7 +13,7 @@ namespace Lab.AkkaNet.Banking.Tests
     {
 
         [Fact]
-        public void TheFundraiser()
+        public async Task TheFundraiser()
         {
             var bankingSystem = ActorSystem.Create("bankingSystem");
             var bobsAccount = bankingSystem.ActorOf(Account.Create(1, 0));
@@ -29,11 +29,11 @@ namespace Lab.AkkaNet.Banking.Tests
 
             Task.WaitAll(tasks.ToArray());
 
-            var balance = bobsAccount.Ask<decimal>(new QueryBalance(1)).Result;
+            var balance = await bobsAccount.Ask<decimal>(new QueryBalance(1));
         }
 
         [Fact]
-        public void TheMillionaresGame()
+        public async Task TheMillionaresGame()
         {
             var bankingSystem = ActorSystem.Create("bankingSystem");
             var bank = bankingSystem.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
@@ -59,18 +59,23 @@ namespace Lab.AkkaNet.Banking.Tests
 
             Task.WaitAll(bobToSam, samToBob);
 
-            var bobBalance = bank.Ask<decimal>(new QueryAccountBalance(1)).Result;
-            var samaBalance = bank.Ask<decimal>(new QueryAccountBalance(2)).Result;
+            var bobBalance = await bank.Ask<decimal>(new QueryAccountBalance(1));
+            var samaBalance = await bank.Ask<decimal>(new QueryAccountBalance(2));
         }
 
         [Fact]
-        public void TheLuckyLooserWithTheSadWinner()
+        public async Task TheLuckyLooserWithTheSadWinner()
         {
             var bankingSystem = ActorSystem.Create("bankingSystem");
             var bank = bankingSystem.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
+            var tellProbe = CreateTestProbe();
 
-            bank.Tell(new Open(1, 0)); // bob
-            bank.Tell(new Open(2, 0)); // sam
+            bank.Tell(new Open(1, 0), tellProbe); // bob
+            var account1 = tellProbe.ExpectMsg<IActorRef>();
+
+            bank.Tell(new Open(2, 0), tellProbe); // sam
+            var account2 = tellProbe.ExpectMsg<IActorRef>();
+
 
             var tasks = new List<Task>();
             for (int i = 0; i < 100000; i++)
@@ -83,8 +88,12 @@ namespace Lab.AkkaNet.Banking.Tests
 
             Task.WaitAll(tasks.ToArray());
 
-            var luckyLooserBalance = bank.Ask<decimal>(new QueryAccountBalance(1)).Result;
-            var sadWinnerBalance = bank.Ask<decimal>(new QueryAccountBalance(2)).Result;
+            var luckyLooserBalance = await bank.Ask<decimal>(new QueryAccountBalance(1));
+            var sadWinnerBalance = await bank.Ask<decimal>(new QueryAccountBalance(2));
+
+            var account1Balance = await account1.Ask<decimal>(new QueryBalance(1));
+            var account2Balance = await account2.Ask<decimal>(new QueryBalance(2));
+
         }
 
 

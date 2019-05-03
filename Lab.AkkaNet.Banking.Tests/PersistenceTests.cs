@@ -95,13 +95,7 @@ akka {{
             Thread.Sleep(TimeSpan.FromSeconds(10));
         }
 
-        [Fact]
-        public async void QueryBalance()
-        {
-            var bank = ActorOfAsTestActorRef<Bank>(Bank.Create("Sparkasse")); // Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
-            var bobBalance = await bank.Ask<decimal>(new QueryAccountBalance(1));
-            var samBalance = await bank.Ask<decimal>(new QueryAccountBalance(2));
-        }
+        
 
         [Fact]
         public async void SimpleTransfer()
@@ -126,6 +120,58 @@ akka {{
 
             Assert.Equal(50, bobBalance);
             Assert.Equal(150, samBalance);
+        }
+
+        [Fact]
+        public async void QueryBalance()
+        {
+            var bank = ActorOfAsTestActorRef<Bank>(Bank.Create("Sparkasse")); // Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
+            var bobBalance = await bank.Ask<decimal>(new QueryAccountBalance(1));
+            var samBalance = await bank.Ask<decimal>(new QueryAccountBalance(2));
+        }
+
+        [Fact]
+        public async void TheMillionaresGame()
+        {
+            var connection = new SqlConnection(DbConnectionString);
+            connection.Execute("TRUNCATE TABLE Banking_Journal");
+            connection.Execute("TRUNCATE TABLE Banking_Snapshot");
+
+            var transactionCount = 100;
+            var bank = Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
+            var tellProbe = CreateTestProbe();
+
+
+            bank.Tell(new Open(1, 1000000)); // bob
+            bank.Tell(new Open(2, 1000000)); // sam
+
+            var bobToSam = Task.Run(() =>
+            {
+                for (int i = 0; i < transactionCount; i++)
+                {
+                    bank.Tell(new Transfer(1, 2, 1), tellProbe);
+                    tellProbe.ExpectMsg<MoneyTransfered>();
+                }
+            });
+
+            var samToBob = Task.Run(() =>
+            {
+                for (int i = 0; i < transactionCount; i++)
+                {
+                    bank.Tell(new Transfer(2, 1, 1), tellProbe);
+                    tellProbe.ExpectMsg<MoneyTransfered>();
+                }
+            });
+
+            Task.WaitAll(bobToSam, samToBob);
+
+            Thread.Sleep(1000);
+
+            var bobBalance = await bank.Ask<decimal>(new QueryAccountBalance(1));
+            var samBalance = await bank.Ask<decimal>(new QueryAccountBalance(2));
+
+            Assert.Equal(1000000, samBalance);
+            Assert.Equal(1000000, bobBalance);
         }
 
         [Fact]
@@ -212,49 +258,7 @@ akka {{
             Assert.True(result.ToList()[0] is AmountWithdrawn);
         }
 
-        [Fact]
-        public async void TheMillionaresGame()
-        {
-            var connection = new SqlConnection(DbConnectionString);
-            connection.Execute("TRUNCATE TABLE Banking_Journal");
-            connection.Execute("TRUNCATE TABLE Banking_Snapshot");
-
-            var transactionCount = 100;
-            var bank = Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
-            var tellProbe = CreateTestProbe();
-
-
-            bank.Tell(new Open(1, 1000000)); // bob
-            bank.Tell(new Open(2, 1000000)); // sam
-
-            var bobToSam = Task.Run(() =>
-            {
-                for (int i = 0; i < transactionCount; i++)
-                {
-                    bank.Tell(new Transfer(1, 2, 1), tellProbe);
-                    tellProbe.ExpectMsg<MoneyTransfered>();
-                }
-            });
-
-            var samToBob = Task.Run(() =>
-            {
-                for (int i = 0; i < transactionCount; i++)
-                {
-                    bank.Tell(new Transfer(2, 1, 1), tellProbe);
-                    tellProbe.ExpectMsg<MoneyTransfered>();
-                }
-            });
-
-            Task.WaitAll(bobToSam, samToBob);
-
-            Thread.Sleep(1000);
-
-            var bobBalance = await bank.Ask<decimal>(new QueryAccountBalance(1));
-            var samBalance = await bank.Ask<decimal>(new QueryAccountBalance(2));
-
-            Assert.Equal(1000000, samBalance);
-            Assert.Equal(1000000, bobBalance);
-        }
+        
 
        
     }
