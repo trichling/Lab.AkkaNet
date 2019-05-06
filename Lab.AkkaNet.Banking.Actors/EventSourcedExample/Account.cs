@@ -23,16 +23,10 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
             this.balance = initialBalance;
         }
 
-        public void Handle(Deposit deposit)
-        {
-            Causes(new AmountDeposited(deposit.TransactionId, number, deposit.Amount));
-        }
+        // Deposit
+       
 
-        public void Apply(AmountDeposited amountDeposited)
-        {
-            balance += amountDeposited.Amount;
-        }
-
+        #region prebuild
         public void Handle(Withdraw withdraw)
         {
             Causes(new AmountWithdrawn(withdraw.TransactionId, number, withdraw.Amount));
@@ -48,7 +42,7 @@ namespace Lab.AkkaNet.Banking.Actors.EventSourcedExample
         {
             Sender.Tell(balance);
         }
-
+#endregion
      
     }
 
