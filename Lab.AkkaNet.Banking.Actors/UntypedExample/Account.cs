@@ -19,21 +19,7 @@ namespace Lab.AkkaNet.Banking.Actors.UntypedExample
             this.balance = initialBalance;
         }
 
-        protected override void OnReceive(object message)
-        {
-            switch (message)
-            {
-                case Deposit deposit:
-                    balance += deposit.Amount;
-                    break;
-                case Withdraw withdraw:
-                    balance -= withdraw.Amount;
-                    break;
-                case QueryBalance _:
-                    Sender.Tell(balance);
-                    break;
-            }
-        }
+       
     }
 
    

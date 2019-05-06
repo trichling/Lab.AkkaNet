@@ -16,19 +16,19 @@ namespace Lab.AkkaNet.Banking.Actors.ReceiveActorExample
         {
             this.name = name;
 
-            ReceiveAsync<Open>(Open);
-            ReceiveAsync<Transfer>(Transfer);
-            ReceiveAsync<QueryAccountBalance>(QueryAccountBalance);
+            ReceiveAsync<Open>(Handle);
+            ReceiveAsync<Transfer>(Handle);
+            ReceiveAsync<QueryAccountBalance>(Handle);
         }
 
-        public Task Open(Open message)
+        public Task Handle(Open message)
         {
             var newAccount = Context.ActorOf(Account.Create(message.Number, message.InitialBalance), $"Account-{message.Number}");
             Sender.Tell(newAccount);
             return Task.CompletedTask;
         }
 
-        public Task Transfer(Transfer message)
+        public Task Handle(Transfer message)
         {
             var sourceAccount = Context.Child($"Account-{message.SourceAccountNumber}");
             var targetAccount = Context.Child($"Account-{message.TargetAccountNumber}");
@@ -38,7 +38,7 @@ namespace Lab.AkkaNet.Banking.Actors.ReceiveActorExample
             return Task.CompletedTask;
         }
 
-        public Task QueryAccountBalance(QueryAccountBalance message)
+        public Task Handle(QueryAccountBalance message)
         {
             var account = Context.Child($"Account-{message.Number}");
             account.Forward(new QueryBalance(message.Number));
