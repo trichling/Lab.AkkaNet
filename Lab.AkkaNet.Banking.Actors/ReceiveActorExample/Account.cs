@@ -19,28 +19,12 @@ namespace Lab.AkkaNet.Banking.Actors.ReceiveActorExample
             this.number = number;
             this.balance = initialBalance;
 
-            ReceiveAsync<Deposit>(Handle);
-            ReceiveAsync<Withdraw>(Handle);
-            ReceiveAsync<QueryAccountBalance>(Handle);
+            // ReceiveAsync<Deposit>(Handle);
+            // ReceiveAsync<Withdraw>(Handle);
+            // ReceiveAsync<QueryAccountBalance>(Handle);
         }
 
-        public Task Handle(Deposit message)
-        {
-            balance += message.Amount;
-            return Task.CompletedTask;
-        }
-
-        public Task Handle(Withdraw message)
-        {
-            balance -= message.Amount;
-            return Task.CompletedTask;
-        }
-
-        public Task Handle(QueryAccountBalance message)
-        {
-            Sender.Tell(balance);
-            return Task.CompletedTask;
-        }
+      
       
     }
 
