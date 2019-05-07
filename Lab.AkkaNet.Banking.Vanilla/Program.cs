@@ -18,14 +18,14 @@ namespace Lab.AkkaNet.Banking.Vanilla
         private static void TheFundraiser()
         {
             var bank = new Bank("Sparkasse Rheine");
-            var bobsAccount = bank.Open(1, 0);
+            var teslasAccount = bank.Open(1, 0);
 
             var tasks = new List<Task>();
             for (int i = 0; i < 100000; i++)
             {
                 tasks.Add(Task.Run(() =>
                 {
-                    bobsAccount.Deposit(1);
+                    teslasAccount.Deposit(1);
                 }));
             }
 
@@ -35,10 +35,10 @@ namespace Lab.AkkaNet.Banking.Vanilla
         private static void TheMillionaresGame()
         {
             var bank = new Bank("Sparkasse Rheine");
-            var bobsAccount = bank.Open(1, 1000000);
-            var samsAccount = bank.Open(2, 1000000);
+            var thomasAccount = bank.Open(1, 1000000);
+            var alvasAccount = bank.Open(2, 1000000);
 
-            var bobToSam = Task.Run(() =>
+            var thomasToAlva = Task.Run(() =>
             {
                 for (int i = 0; i < 1000000; i++)
                 {
@@ -46,7 +46,7 @@ namespace Lab.AkkaNet.Banking.Vanilla
                 }
             });
 
-            var samToBob = Task.Run(() =>
+            var AlvaToThomas = Task.Run(() =>
             {
                 for (int i = 0; i < 1000000; i++)
                 {
@@ -54,7 +54,7 @@ namespace Lab.AkkaNet.Banking.Vanilla
                 }
             });
 
-            Task.WaitAll(bobToSam, samToBob);
+            Task.WaitAll(thomasToAlva, AlvaToThomas);
         }
 
         public static void TheLuckyLooserWithTheSadWinner()

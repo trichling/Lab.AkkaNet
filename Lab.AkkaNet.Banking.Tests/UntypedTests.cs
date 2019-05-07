@@ -16,20 +16,20 @@ namespace Lab.AkkaNet.Banking.Tests
         public async Task TheFundraiser()
         {
             var bankingSystem = ActorSystem.Create("bankingSystem");
-            var bobsAccount = bankingSystem.ActorOf(Account.Create(1, 0));
+            var teslasAccount = bankingSystem.ActorOf(Account.Create(1, 0));
 
             var tasks = new List<Task>();
             for (int i = 0; i < 100000; i++)
             {
                 tasks.Add(Task.Run(() =>
                 {
-                    bobsAccount.Tell(new Deposit(1, 1));
+                    teslasAccount.Tell(new Deposit(1, 1));
                 }));
             }
 
             Task.WaitAll(tasks.ToArray());
 
-            var balance = await bobsAccount.Ask<decimal>(new QueryBalance(1));
+            var balance = await teslasAccount.Ask<decimal>(new QueryBalance(1));
         }
 
         [Fact]
@@ -38,10 +38,10 @@ namespace Lab.AkkaNet.Banking.Tests
             var bankingSystem = ActorSystem.Create("bankingSystem");
             var bank = bankingSystem.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
 
-            bank.Tell(new Open(1, 1000000)); // bob
-            bank.Tell(new Open(2, 1000000)); // sam
+            bank.Tell(new Open(1, 1000000)); 
+            bank.Tell(new Open(2, 1000000)); 
 
-            var bobToSam = Task.Run(() =>
+            var thomasToAlva = Task.Run(() =>
             {
                 for (int i = 0; i < 1000000; i++)
                 {
@@ -49,7 +49,7 @@ namespace Lab.AkkaNet.Banking.Tests
                 }
             });
 
-            var samToBob = Task.Run(() =>
+            var alvaToThomas = Task.Run(() =>
             {
                 for (int i = 0; i < 1000000; i++)
                 {
@@ -57,10 +57,10 @@ namespace Lab.AkkaNet.Banking.Tests
                 }
             });
 
-            Task.WaitAll(bobToSam, samToBob);
+            Task.WaitAll(thomasToAlva, alvaToThomas);
 
-            var bobBalance = await bank.Ask<decimal>(new QueryAccountBalance(1));
-            var samaBalance = await bank.Ask<decimal>(new QueryAccountBalance(2));
+            var thomasBalance = await bank.Ask<decimal>(new QueryAccountBalance(1));
+            var alvaBalance = await bank.Ask<decimal>(new QueryAccountBalance(2));
         }
 
         [Fact]
