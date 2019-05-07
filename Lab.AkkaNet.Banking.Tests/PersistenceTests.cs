@@ -95,7 +95,67 @@ akka {{
             Thread.Sleep(TimeSpan.FromSeconds(10));
         }
 
-        
+        [Fact]
+        public async void TheMillionaresGame()
+        {
+            var connection = new SqlConnection(DbConnectionString);
+            connection.Execute("TRUNCATE TABLE Banking_Journal");
+            connection.Execute("TRUNCATE TABLE Banking_Snapshot");
+
+            var transactionCount = 100;
+            var bank = Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
+
+            bank.Tell(new Open(1, 1000000)); 
+            bank.Tell(new Open(2, 1000000)); 
+
+            var thomasToAlva = Task.Run(() =>
+            {
+                for (int i = 0; i < transactionCount; i++)
+                {
+                    bank.Tell(new Transfer(1, 2, 1));
+                }
+            });
+
+            var alvaToThomas = Task.Run(() =>
+            {
+                for (int i = 0; i < transactionCount; i++)
+                {
+                    bank.Tell(new Transfer(2, 1, 1));
+                }
+            });
+
+            Task.WaitAll(thomasToAlva, alvaToThomas);
+
+            Thread.Sleep(1000);
+
+            var bobBalance = await bank.Ask<decimal>(new QueryAccountBalance(1));
+            var samBalance = await bank.Ask<decimal>(new QueryAccountBalance(2));
+
+            Assert.Equal(1000000, samBalance);
+            Assert.Equal(1000000, bobBalance);
+        }
+
+        [Fact]
+        public async void CurrentBalanceReadModel()
+        {
+            var connection = new SqlConnection(DbConnectionString);
+            connection.Execute("TRUNCATE TABLE Banking_Journal");
+            connection.Execute("TRUNCATE TABLE Banking_Snapshot");
+
+            var database = new AccountBalanceDatabase();
+            Sys.ActorOf(CurrentBalanceReadModelBuilder.Create(database));
+
+            var bank = ActorOfAsTestActorRef<Bank>(Bank.Create("Sparkasse")); // Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
+
+            bank.Tell(new Open(1, 100)); // bob
+            bank.Tell(new Open(2, 100)); // sam
+            bank.Tell(new Transfer(1, 2, 50));
+
+            Thread.Sleep(1000);
+
+            Assert.Equal(50M, database.Select(1));
+            Assert.Equal(150M, database.Select(2));
+        }
 
         [Fact]
         public async void SimpleTransfer()
@@ -128,72 +188,6 @@ akka {{
             var bank = ActorOfAsTestActorRef<Bank>(Bank.Create("Sparkasse")); // Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
             var bobBalance = await bank.Ask<decimal>(new QueryAccountBalance(1));
             var samBalance = await bank.Ask<decimal>(new QueryAccountBalance(2));
-        }
-
-        [Fact]
-        public async void TheMillionaresGame()
-        {
-            var connection = new SqlConnection(DbConnectionString);
-            connection.Execute("TRUNCATE TABLE Banking_Journal");
-            connection.Execute("TRUNCATE TABLE Banking_Snapshot");
-
-            var transactionCount = 100;
-            var bank = Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
-            var tellProbe = CreateTestProbe();
-
-
-            bank.Tell(new Open(1, 1000000)); // bob
-            bank.Tell(new Open(2, 1000000)); // sam
-
-            var bobToSam = Task.Run(() =>
-            {
-                for (int i = 0; i < transactionCount; i++)
-                {
-                    bank.Tell(new Transfer(1, 2, 1), tellProbe);
-                    tellProbe.ExpectMsg<MoneyTransfered>();
-                }
-            });
-
-            var samToBob = Task.Run(() =>
-            {
-                for (int i = 0; i < transactionCount; i++)
-                {
-                    bank.Tell(new Transfer(2, 1, 1), tellProbe);
-                    tellProbe.ExpectMsg<MoneyTransfered>();
-                }
-            });
-
-            Task.WaitAll(bobToSam, samToBob);
-
-            Thread.Sleep(1000);
-
-            var bobBalance = await bank.Ask<decimal>(new QueryAccountBalance(1));
-            var samBalance = await bank.Ask<decimal>(new QueryAccountBalance(2));
-
-            Assert.Equal(1000000, samBalance);
-            Assert.Equal(1000000, bobBalance);
-        }
-
-        [Fact]
-        public async void CurrentBalanceReadModel()
-        {
-            var connection = new SqlConnection(DbConnectionString);
-            connection.Execute("TRUNCATE TABLE Banking_Journal");
-            connection.Execute("TRUNCATE TABLE Banking_Snapshot");
-
-            var database = new AccountBalanceDatabase();
-            Sys.ActorOf(CurrentBalanceReadModelBuilder.Create(database));
-
-            var bank = ActorOfAsTestActorRef<Bank>(Bank.Create("Sparkasse")); // Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
-
-            bank.Tell(new Open(1, 100)); // bob
-            bank.Tell(new Open(2, 100)); // sam
-            bank.Tell(new Transfer(1, 2, 50));
-
-            Thread.Sleep(5000);
-
-            Assert.Equal(50M, database.Select(1));
-            Assert.Equal(150M, database.Select(2));
         }
 
         [Fact]

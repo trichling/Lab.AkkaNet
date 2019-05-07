@@ -35,16 +35,7 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
             balance += amountDeposited.Amount;
         }
 
-        public void Handle(Withdraw withdraw)
-        {
-            // Logikprüfung hier, z. B. Dispo-Rahmen
-            Causes(new AmountWithdrawn(withdraw.TransactionId, number, withdraw.Amount));
-        }
-
-        public void Apply(AmountWithdrawn amountWithdrawn)
-        {
-            balance -= amountWithdrawn.Amount;
-        }
+       // Withdraw
         
         public void Handle(QueryBalance queryBalance)
         {

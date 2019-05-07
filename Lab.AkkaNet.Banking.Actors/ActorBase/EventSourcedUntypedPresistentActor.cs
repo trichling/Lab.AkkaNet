@@ -10,22 +10,11 @@ namespace Lab.AkkaNet.Banking.Actors.ActorBase
 
         protected int SnapShotInterval = 10;
 
-        protected override void OnPersistFailure(Exception cause, object @event, long sequenceNr)
-        {
-
-        }
-
-        protected override void OnRecoveryFailure(Exception reason, object message = null)
-        {
-
-        }
-
         protected override void OnCommand(object command)
         {            
             ((dynamic)this).Handle((dynamic)command);
         }
 
-        // Catch all
         public virtual void Handle(object e)
         {
             Unhandled(e);
