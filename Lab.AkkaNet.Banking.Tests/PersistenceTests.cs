@@ -39,8 +39,8 @@ akka {{
             custom-json = ""Lab.AkkaNet.Banking.Actors.Serialization.AkkaJsonNetSerailizer, Lab.AkkaNet.Banking.Actors""
         }}
         serialization-bindings {{
-            ""Lab.AkkaNet.Banking.Actors.PersistenceExample.IEvent, Lab.AkkaNet.Banking.Actors"" = custom-json
-            ""Lab.AkkaNet.Banking.Actors.PersistenceExample.ISnapshot, Lab.AkkaNet.Banking.Actors"" = custom-json
+            //""Lab.AkkaNet.Banking.Actors.PersistenceExample.IEvent, Lab.AkkaNet.Banking.Actors"" = custom-json
+            //""Lab.AkkaNet.Banking.Actors.PersistenceExample.ISnapshot, Lab.AkkaNet.Banking.Actors"" = custom-json
         }}
         serialization-identifiers {{
             ""Lab.AkkaNet.Banking.Actors.Serialization.AkkaJsonNetSerailizer, Lab.AkkaNet.Banking.Actors"" = 42
