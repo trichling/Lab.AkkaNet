@@ -56,6 +56,14 @@ akka {{
             schema-name = dbo
             table-name = Banking_Journal
             refresh-interval = 1s
+
+            event-adapters {{
+                 tagging = ""Lab.AkkaNet.Banking.Actors.Serialization.TaggingEventAdapter, Lab.AkkaNet.Banking.Actors""
+            }}
+
+            event-adapter-bindings {{
+                ""Lab.AkkaNet.Banking.Actors.PersistenceExample.IEvent, Lab.AkkaNet.Banking.Actors"" = tagging
+            }}
         }}
         snapshot-store.plugin =  ""akka.persistence.snapshot-store.sql-server""
         snapshot-store.sql-server {{
@@ -123,7 +131,7 @@ akka {{
         }
 
         [Fact]
-        public async void QueryBalance()
+        public async Task QueryBalance()
         {
             var bank = ActorOfAsTestActorRef<Bank>(Bank.Create("Sparkasse")); // Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
             var bobBalance = await bank.Ask<decimal>(new QueryAccountBalance(1));
@@ -194,6 +202,79 @@ akka {{
 
             Assert.Equal(50M, database.Select(1));
             Assert.Equal(150M, database.Select(2));
+        }
+
+        [Fact]
+        public async void CurrentBalanceReadModel_FromStream()
+        {
+            var readJournal = Sys.ReadJournalFor<SqlReadJournal>(SqlReadJournal.Identifier);
+            var database = new AccountBalanceDatabase();
+            Sys.ActorOf(CurrentBalanceFromSubsriptionReadModelBuilder.Create(readJournal, database));
+
+            Thread.Sleep(5000);
+
+            var bank = ActorOfAsTestActorRef<Bank>(Bank.Create("Sparkasse")); // Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
+            bank.Tell(new Transfer(2, 1, 50));
+            bank.Tell(new Transfer(2, 1, 50));
+
+            Thread.Sleep(5000);
+
+
+            Assert.Equal(50M, database.Select(1));
+            Assert.Equal(150M, database.Select(2));
+        }
+
+        [Fact]
+        private async Task CreateTestData()
+        {
+            var connection = new SqlConnection(DbConnectionString);
+            connection.Execute("TRUNCATE TABLE Banking_Journal");
+            connection.Execute("TRUNCATE TABLE Banking_Snapshot");
+
+            var bank = ActorOfAsTestActorRef<Bank>(Bank.Create("Sparkasse")); // Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
+
+            bank.Tell(new Open(1, 100)); // bob
+            bank.Tell(new Open(2, 100)); // sam
+            bank.Tell(new Transfer(1, 2, 50));
+            bank.Tell(new Transfer(1, 2, 50));
+            bank.Tell(new Transfer(1, 2, 50));
+
+            Thread.Sleep(5000);
+
+        }
+
+        [Fact]
+        public async void SimpeStreamTest()
+        {
+            var materializer = ActorMaterializer.Create(Sys);
+            var sourceUnderTest = Source.Tick(TimeSpan.FromSeconds(0), TimeSpan.FromMilliseconds(200), "Tick");
+
+            var probe = CreateTestProbe();
+            var cancellable = sourceUnderTest.To(Sink.ActorRef<string>(probe.Ref, "completed")).Run(materializer);
+
+            probe.ExpectMsg("Tick");
+            probe.ExpectNoMsg(TimeSpan.FromMilliseconds(100));
+            probe.ExpectMsg("Tick", TimeSpan.FromMilliseconds(200));
+            cancellable.Cancel();
+            probe.ExpectMsg("completed");
+        }
+
+        [Fact]
+        public async void SourceStreamSinkTest()
+        {
+            var journal = Sys.ReadJournalFor<SqlReadJournal>(SqlReadJournal.Identifier);
+            var materializer = ActorMaterializer.Create(Sys);
+            var sourceUnderTest = journal.EventsByTag("Test");
+
+            var probe = CreateTestProbe();
+            sourceUnderTest.To(Sink.ActorRef<EventEnvelope>(probe.Ref, "completed")).Run(materializer);
+
+            probe.ExpectMsg<EventEnvelope>();
+
+            // probe.ExpectMsg("Tick");
+            // probe.ExpectNoMsg(TimeSpan.FromMilliseconds(100));
+            // probe.ExpectMsg("Tick", TimeSpan.FromMilliseconds(200));
+            // probe.ExpectMsg("completed");
         }
 
         [Fact]
