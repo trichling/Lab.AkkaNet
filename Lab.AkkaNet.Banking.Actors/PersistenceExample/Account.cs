@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Akka.Actor;
 using Lab.AkkaNet.Banking.Actors.ActorBase;
+using Lab.AkkaNet.Banking.Actors.Serialization;
 
 namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
 {
@@ -114,6 +115,7 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
 
     }
 
+    [Tags("Account")]
     public class AmountDeposited : IEvent
     {
         public AmountDeposited(Guid transactionId, int number, decimal amount)
@@ -145,6 +147,7 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
 
     }
 
+    [Tags("Account")]
     public class AmountWithdrawn : IEvent
     {
 

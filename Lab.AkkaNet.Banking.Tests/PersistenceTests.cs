@@ -9,9 +9,9 @@ using Xunit;
 using Dapper;
 using Akka.Persistence.Query;
 using Akka.Persistence.Query.Sql;
-using Akka.Streams;
 using System.Collections.Generic;
 using System.Linq;
+using Akka.Streams;
 using Akka.Streams.Dsl;
 using System.Collections.Immutable;
 
@@ -207,21 +207,35 @@ akka {{
         [Fact]
         public async void CurrentBalanceReadModel_FromStream()
         {
+            var connection = new SqlConnection(DbConnectionString);
+            connection.Execute("TRUNCATE TABLE Banking_Journal");
+            connection.Execute("TRUNCATE TABLE Banking_Snapshot");
+
             var readJournal = Sys.ReadJournalFor<SqlReadJournal>(SqlReadJournal.Identifier);
             var database = new AccountBalanceDatabase();
             Sys.ActorOf(CurrentBalanceFromSubsriptionReadModelBuilder.Create(readJournal, database));
 
-            Thread.Sleep(5000);
-
             var bank = ActorOfAsTestActorRef<Bank>(Bank.Create("Sparkasse")); // Sys.ActorOf(Bank.Create("Sparkasse"), "Bank-Sparkasse");
-            bank.Tell(new Transfer(2, 1, 50));
+            
+            
+            bank.Tell(new Open(1, 100)); // bob
+            bank.Tell(new Open(2, 100)); // sam
+            
             bank.Tell(new Transfer(2, 1, 50));
 
             Thread.Sleep(5000);
 
+            Assert.Equal(150M, database.Select(1));
+            Assert.Equal(50M, database.Select(2));
 
-            Assert.Equal(50M, database.Select(1));
-            Assert.Equal(150M, database.Select(2));
+            Thread.Sleep(5000);
+
+            bank.Tell(new Transfer(2, 1, 50));
+
+            Thread.Sleep(5000);
+
+            Assert.Equal(200M, database.Select(1));
+            Assert.Equal(0M, database.Select(2));
         }
 
         [Fact]

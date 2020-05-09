@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using Akka.Actor;
 using Lab.AkkaNet.Banking.Actors.ActorBase;
+using Lab.AkkaNet.Banking.Actors.Serialization;
 
 namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
 {
@@ -115,6 +116,7 @@ namespace Lab.AkkaNet.Banking.Actors.PersistenceExample
 
     }
 
+    [Tags("Account")]
     public class AccountOpened : IEvent
     {
         
