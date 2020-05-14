@@ -1,24 +1,16 @@
 ﻿using System;
 using Akka.Actor;
-using Lab.AkkaNet.Banking.Actors.Messages;
 
-namespace Lab.AkkaNet.Banking.Actors.ATM
+namespace Lab.AkkaNet.Banking.Actors.BankingSystem
 {
     class Program
     {
         static void Main(string[] args)
         {
-            var system = ActorSystem.Create("ATM", GetConfigurationString());
+            var system = ActorSystem.Create("Banking", GetConfigurationString());
 
-            // Can not receive Connected message
-            // var sparkasse = system.ActorSelection("akka.tcp://Banking@localhost:8199/user/Sparkasse");
-            // sparkasse.Tell(new Connect() {
-            //     ClientId = Guid.NewGuid()
-            // });
-
-            // better: use an actor for it
-            var atm = system.ActorOf(Props.Create(() => new AutomatedTellerMachine()));
-            atm.Tell(Guid.NewGuid());
+            var connector = system.ActorOf<BankConnector>("BankConnector");
+            var sparkasse = system.ActorOf(Bank.Create("Sparkasse"), "Sparkasse");
 
             Console.ReadLine();
         }
@@ -40,7 +32,7 @@ akka {{
     }}
     remote {{
             dot-netty.tcp {{
-                port = 0 # Dynamic Port (Client)
+                port = 8199 # Dynamic Port (Client)
                 hostname = localhost
             }}
         }}

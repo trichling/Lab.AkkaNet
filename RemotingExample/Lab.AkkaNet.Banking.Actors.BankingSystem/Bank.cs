@@ -14,18 +14,7 @@ namespace Lab.AkkaNet.Banking.Actors.BankingSystem
         public Bank(string name)
         {
             this.name = name;
-        }
-
-        public void Handle(Connect connect)
-        {
-            Causes(new Connected() {
-                ClientId = connect.ClientId,
-                To = this.name
-            });
-        }
-
-        public void Handle(Connected connected)
-        {}
+        }       
 
         public void Handle(QueryAccountBalance queryAccountBalance)
         {

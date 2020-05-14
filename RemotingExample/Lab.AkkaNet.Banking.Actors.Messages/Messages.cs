@@ -4,61 +4,6 @@ using Lab.AkkaNet.Banking.Actors.Messages.ActorBase;
 namespace Lab.AkkaNet.Banking.Actors.Messages
 {
 
-    public class Connect
-    {
-
-        public Guid ClientId { get; set; }
-
-    }
-
-    public class Connected : IEvent
-    {
-
-        public Guid ClientId { get; set; }
-
-        public string To { get; set; }
-    }
-
-    public class QueryBalance
-    {
-        public QueryBalance(int number)
-        {
-            Number = number;
-        }
-        public int Number { get; set; }
-
-    }
-
-    public class Deposit
-    {
-        public Deposit(Guid transactionId, int number, decimal amount)
-        {
-            TransactionId = transactionId;
-            Number = number;
-            Amount = amount;
-        }
-
-        public Guid TransactionId { get; }
-        public int Number { get; set; }
-        public decimal Amount { get; set; }
-
-    }
-
-    public class AmountDeposited : IEvent
-    {
-        public AmountDeposited(Guid transactionId, int number, decimal amount)
-        {
-            TransactionId = transactionId;
-            Number = number;
-            Amount = amount;
-        }
-
-        public Guid TransactionId { get; }
-        public int Number { get; set; }
-        public decimal Amount { get; set; }
-
-    }
-
     public class Withdraw
     {
 
