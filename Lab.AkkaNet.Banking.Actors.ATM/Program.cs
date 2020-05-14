@@ -1,5 +1,6 @@
 ﻿using System;
 using Akka.Actor;
+using Lab.AkkaNet.Banking.Actors.Messages;
 
 namespace Lab.AkkaNet.Banking.Actors.ATM
 {
@@ -9,6 +10,13 @@ namespace Lab.AkkaNet.Banking.Actors.ATM
         {
             var system = ActorSystem.Create("ATM", GetConfigurationString());
 
+            // Can not receive Connected message
+            // var sparkasse = system.ActorSelection("akka.tcp://Banking@localhost:8199/user/Sparkasse");
+            // sparkasse.Tell(new Connect() {
+            //     ClientId = Guid.NewGuid()
+            // });
+
+            // better: use an actor for it
             var atm = system.ActorOf(Props.Create(() => new AutomatedTellerMachine()));
             atm.Tell(Guid.NewGuid());
 
