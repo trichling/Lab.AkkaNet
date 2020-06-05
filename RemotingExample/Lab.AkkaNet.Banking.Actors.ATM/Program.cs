@@ -9,6 +9,14 @@ namespace Lab.AkkaNet.Banking.Actors.ATM
     {
         static void Main(string[] args)
         {
+            var bankName = "Sparkasse";
+            var port = 8199;
+
+            if (args.Length == 2)
+            {
+                bankName = args[0];
+                port = int.Parse(args[1]);
+            }
             var system = ActorSystem.Create("ATM", GetConfigurationString());
 
             // Can not receive Connected message
@@ -18,10 +26,11 @@ namespace Lab.AkkaNet.Banking.Actors.ATM
             // });
 
             // better: use an actor for it
-            var atm = system.ActorOf(Props.Create(() => new AutomatedTellerMachine()));
+            Console.WriteLine($"Connecting to {bankName}");
+            var atmId = Guid.NewGuid();
+            var atm = system.ActorOf(Props.Create(() => new AutomatedTellerMachine(atmId, bankName, port)));
             atm.Tell(new ConnectToBank() {
-                AtmId = Guid.NewGuid(),
-                BankName = "Sparkasse"
+                BankName = bankName
             });
 
             Console.ReadLine();

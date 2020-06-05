@@ -7,15 +7,26 @@ namespace Lab.AkkaNet.Banking.Actors.BankingSystem
     {
         static void Main(string[] args)
         {
-            var system = ActorSystem.Create("Banking", GetConfigurationString());
+            var bankName = "Sparkasse";
+            var port = 8199;
+
+            if (args.Length == 2)
+            {
+                bankName = args[0];
+                port = int.Parse(args[1]);
+            }
+
+            Console.WriteLine($"Starting {bankName}");
+
+            var system = ActorSystem.Create($"Bank-{bankName}", GetConfigurationString(port));
 
             var connector = system.ActorOf<BankConnector>("BankConnector");
-            var sparkasse = system.ActorOf(Bank.Create("Sparkasse"), "Sparkasse");
+            var sparkasse = system.ActorOf(Bank.Create(bankName), bankName);
 
             Console.ReadLine();
         }
 
-        private static string GetConfigurationString() => $@"
+        private static string GetConfigurationString(int port) => $@"
 akka {{
     stdout-loglevel = DEBUG
     loglevel = DEBUG
@@ -32,7 +43,7 @@ akka {{
     }}
     remote {{
             dot-netty.tcp {{
-                port = 8199 # Dynamic Port (Client)
+                port = {port} 
                 hostname = localhost
             }}
         }}
