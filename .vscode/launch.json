@@ -27,6 +27,41 @@
             "console": "externalTerminal",
             "stopAtEntry": false,
             "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "Launch Remoting (Bank)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "buildAkkaRemoteBanking",
+            // If you have changed target frameworks, make sure to update the program path.
+            "program": "${workspaceFolder}/RemotingExample/Lab.AkkaNet.Banking.Actors.BankingSystem/bin/Debug/netcoreapp3.1/Lab.AkkaNet.Banking.Actors.BankingSystem.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/RemotingExample/Lab.AkkaNet.Banking.Actors.BankingSystem",
+            "console": "externalTerminal",
+            "stopAtEntry": false,
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "Launch Remoting (ATM)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "buildAkkaRemoteAtm",
+            // If you have changed target frameworks, make sure to update the program path.
+            "program": "${workspaceFolder}/RemotingExample/Lab.AkkaNet.Banking.Actors.ATM/bin/Debug/netcoreapp3.1/Lab.AkkaNet.Banking.Actors.ATM.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/RemotingExample/Lab.AkkaNet.Banking.Actors.ATM",
+            "console": "externalTerminal",
+            "stopAtEntry": false,
+            "internalConsoleOptions": "openOnSessionStart"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Launch RemotingExample",
+            "configurations": [
+                "Launch Remoting (Bank)",
+                "Launch Remoting (ATM)"
+            ]
         }
     ]
 }

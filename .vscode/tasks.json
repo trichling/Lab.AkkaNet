@@ -20,6 +20,26 @@
                 "${workspaceFolder}/Lab.AkkaNet.Banking.Vanilla/Lab.AkkaNet.Banking.Vanilla.csproj"
             ],
             "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "buildAkkaRemoteBanking",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/RemotingExample/Lab.AkkaNet.Banking.Actors.BankingSystem/Lab.AkkaNet.Banking.Actors.BankingSystem.csproj"
+            ],
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "buildAkkaRemoteAtm",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/RemotingExample/Lab.AkkaNet.Banking.Actors.ATM/Lab.AkkaNet.Banking.Actors.ATM.csproj"
+            ],
+            "problemMatcher": "$msCompile"
         }
     ]
 }

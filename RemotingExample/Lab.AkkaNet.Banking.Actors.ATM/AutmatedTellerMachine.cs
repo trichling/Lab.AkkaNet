@@ -12,12 +12,14 @@ namespace Lab.AkkaNet.Banking.Actors.ATM
         private IActorRef healthChecker;
         private ICancelable heartbeatTask;
         private IActorRef bank;
+        private string bankName;
         private Guid atmId;
 
 
-        public AutomatedTellerMachine(Guid atmId, string bank, int port)
+        public AutomatedTellerMachine(string bank, int port)
         {
-            this.atmId = atmId;
+            this.bankName = bank;
+            this.atmId = Guid.NewGuid();
             this.remoteAddress = $"akka.tcp://Bank-{bank}@localhost:{port}";
 
             Receive<ConnectToBank>(s => {
@@ -36,7 +38,7 @@ namespace Lab.AkkaNet.Banking.Actors.ATM
                 healthChecker =
                     Context.System.ActorOf(
                         Props.Create(() => new HealthChecker())
-                             .WithDeploy(Deploy.None.WithScope(new RemoteScope(remoteSystem))), 
+                             .WithDeploy(new Deploy(new RemoteScope(remoteSystem))), 
                         $"HealthChecker"); 
 
                 // Set death watch
@@ -65,6 +67,15 @@ namespace Lab.AkkaNet.Banking.Actors.ATM
                 Context.Stop(Self);
             });
         }    
+
+        protected override void PreStart()
+        {
+            Console.WriteLine($"Connecting to {bankName}");
+
+            Context.Self.Tell(new ConnectToBank() {
+                BankName = bankName
+            });
+        }
         protected override void PostStop()
         {
             heartbeatTask.Cancel();

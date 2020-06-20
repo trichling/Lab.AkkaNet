@@ -18,20 +18,8 @@ namespace Lab.AkkaNet.Banking.Actors.ATM
                 port = int.Parse(args[1]);
             }
             var system = ActorSystem.Create("ATM", GetConfigurationString());
-
-            // Can not receive Connected message
-            // var sparkasse = system.ActorSelection("akka.tcp://Banking@localhost:8199/user/Sparkasse");
-            // sparkasse.Tell(new Connect() {
-            //     ClientId = Guid.NewGuid()
-            // });
-
-            // better: use an actor for it
-            Console.WriteLine($"Connecting to {bankName}");
-            var atmId = Guid.NewGuid();
-            var atm = system.ActorOf(Props.Create(() => new AutomatedTellerMachine(atmId, bankName, port)));
-            atm.Tell(new ConnectToBank() {
-                BankName = bankName
-            });
+            var atm = system.ActorOf(Props.Create(() => new AutomatedTellerMachine(bankName, port)));
+            
 
             Console.ReadLine();
         }
